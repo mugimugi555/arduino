@@ -29,7 +29,7 @@ void handleRoot() {
   message += ",";
     
   message += "\"pressure\":{\"value\":";
-  message += bmp.readPressure() / 100;
+  message += bmp.readPressure() / 100.0F;
   message += ",\"unit\":\"hPa\"}";
 
   message += ",";
@@ -41,7 +41,7 @@ void handleRoot() {
   message += ",";  
 
   message += "\"sealevel\":{\"value\":";
-  message += bmp.readSealevelPressure() / 100;
+  message += bmp.readSealevelPressure() / 100.0F;
   message += ",\"unit\":\"hPa\"}";
 
   message += ",";
