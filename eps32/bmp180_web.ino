@@ -33,19 +33,16 @@ void handleRoot() {
   message += ",\"unit\":\"hPa\"}";
 
   message += ",";
-    
-
+  
   message += "\"altitude\":{\"value\":";
   message += bmp.readAltitude();
   message += ",\"unit\":\"meters\"}";
 
-  message += ",";
-    
+  message += ",";  
 
   message += "\"sealevel\":{\"value\":";
   message += bmp.readSealevelPressure() / 100;
   message += ",\"unit\":\"hPa\"}";
-
 
   message += ",";
     
