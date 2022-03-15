@@ -52,7 +52,7 @@ void handleRoot() {
 
   message += "}";
 
-  server.send(200, "text/plain", message );
+  server.send(200, "application/json", message );
   digitalWrite(led, 0);
     
 }
