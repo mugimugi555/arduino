@@ -1,0 +1,44 @@
+// https://omoroya.com/arduino-lesson55/
+// https://lastminuteengineers.com/i2c-lcd-arduino-tutorial/
+// install library => LiquidCrystal I2C library
+
+#include <LiquidCrystal_I2C.h>
+
+// set lcd address
+LiquidCrystal_I2C lcd(0x27,16,2);  // 0x27 or 0x3F
+
+// set analog input
+const int AQ0 = A0;   //MQ-3センサモジュールA0の出力先
+
+//
+void setup() {
+  
+  Serial.begin (9600); 
+
+  // init lcd
+  lcd.init();
+  lcd.clear();         
+  lcd.backlight();      // Make sure backlight is on
+  
+  // show title
+  lcd.setCursor(2,0);   //Set cursor to character 2 on line 0
+  lcd.print("MQ-3 Alcohol");
+  
+}
+
+//
+void loop() {
+
+  float A0_out;
+
+  // read alcohol sensor analog 0 pin
+  A0_out = (float)analogRead(AQ0) / 1024.0f * 5.0f;
+  Serial.println(A0_out, 4);
+
+  // show out lcd
+  lcd.setCursor(2,1);
+  lcd.print( A0_out );
+
+  delay(1000);
+
+}
