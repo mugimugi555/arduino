@@ -1,5 +1,7 @@
 <?php
 
+// wget https://raw.githubusercontent.com/mugimugi555/arduino/main/php/serial/read_serial.php && php read_serial.php ;
+
 // https://github.com/lepiaf/serialport/blob/master/example/arduino.php
 //
 // php read_serial.php ;
