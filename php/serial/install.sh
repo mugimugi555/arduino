@@ -11,3 +11,11 @@ composer -v ;
 # install php serial
 cd ;
 composer require "lepiaf/serialport" ;
+
+# set tttyUSB0 permission
+
+# sudo adduser $USER dialout
+# sudo chmod 777 /dev/ttyUSB0
+
+# 50-udev-default.rules
+echo 'KERNEL=="tty[A-Z]*[0-9]|pppox[0-9]*|ircomm[0-9]*|noz[0-9]*|rfcomm[0-9]*", GROUP="dialout", MODE="0666"' | sudo tee /etc/udev/rules.d/50-udev-default.rules ;
