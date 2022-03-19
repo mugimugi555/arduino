@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+# wget https://raw.githubusercontent.com/mugimugi555/arduino/main/php/serial/install.sh && bash install.sh ;
+
 # install php
 sudo apt install -y php php-xml php-bcmath php-mbstring php-xml php-zip php-curl ;
 
