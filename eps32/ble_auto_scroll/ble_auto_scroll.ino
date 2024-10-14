@@ -1,6 +1,6 @@
 #include <BleMouse.h>
 
-BleMouse bleMouse("auto_scroller_2");
+BleMouse bleMouse("auto_scroller");
 
 // LEDの接続ピンを定義
 const int redLEDPin = 2;  // 赤色LEDを接続するピン
