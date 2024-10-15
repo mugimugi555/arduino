@@ -22,13 +22,10 @@ void handleRoot() {
   Serial.println(" PPM");
 
   String message = "";
-  
   message += "{";
-  
   message += "\"formaldehyde\":{\"product\":\"cjmcu-1100\",\"value\":";
   message += analogRead(0);
   message += ",\"unit\":\"ppm\"}";
-
   message += "}";
   
   server.send(200, "application/json", message );
@@ -61,6 +58,7 @@ void setup(void) {
   Serial.begin(115200);
 
   WiFi.mode(WIFI_STA);
+  WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
   Serial.println("");
 
