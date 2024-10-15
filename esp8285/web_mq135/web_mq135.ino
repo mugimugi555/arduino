@@ -4,15 +4,11 @@
 #include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
 
 // WiFi SSIDとパスワードを定義。これらが未定義の場合、デフォルト値を設定。
-#ifndef STASSID
-#define STASSID "**********" // WiFiのSSID
-#define STAPSK  "**********" // WiFiのパスワード
-#endif
+const char* ssid = "WIFISSID";
+const char* password = "WIFIPASSWD";
+const char* hostname = "HOSTNAME";  // ホスト名を指定
 
 int sensorValue; // センサー値を格納するための変数
-
-const char* ssid = STASSID;      // SSIDを定数として定義
-const char* password = STAPSK;   // パスワードを定数として定義
 
 ESP8266WebServer server(80); // ポート80でWebサーバーを作成
 
