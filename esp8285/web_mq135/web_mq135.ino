@@ -66,6 +66,7 @@ void setup(void) {
   Serial.begin(115200); // シリアル通信を115200ボーで開始
 
   WiFi.mode(WIFI_STA); // WiFiモードをステーションに設定
+  WiFi.hostname(hostname);
   WiFi.begin(ssid, password); // WiFi接続を開始
   Serial.println("");
 
