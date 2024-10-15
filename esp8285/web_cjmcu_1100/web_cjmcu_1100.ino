@@ -3,15 +3,11 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 
-#ifndef STASSID
-#define STASSID "**********"
-#define STAPSK  "**********"
-#endif
+const char* ssid = "WIFISSID";
+const char* password = "WIFIPASSWD";
+const char* hostname = "HOSTNAME";  // ホスト名を指定
 
 int sensorValue;
-
-const char* ssid = STASSID;
-const char* password = STAPSK;
 
 ESP8266WebServer server(80);
 
