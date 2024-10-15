@@ -1,102 +1,106 @@
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
+#include <ESP8266WiFi.h>       // ESP8266用のWiFiライブラリをインクルード
+#include <WiFiClient.h>        // WiFiクライアント用ライブラリをインクルード
+#include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
+#include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
 
+// WiFi SSIDとパスワードを定義。これらが未定義の場合、デフォルト値を設定。
 #ifndef STASSID
-#define STASSID "**********"
-#define STAPSK  "**********"
+#define STASSID "**********" // WiFiのSSID
+#define STAPSK  "**********" // WiFiのパスワード
 #endif
 
-int sensorValue;
+int sensorValue; // センサー値を格納するための変数
 
-const char* ssid = STASSID;
-const char* password = STAPSK;
+const char* ssid = STASSID;      // SSIDを定数として定義
+const char* password = STAPSK;   // パスワードを定数として定義
 
-ESP8266WebServer server(80);
+ESP8266WebServer server(80); // ポート80でWebサーバーを作成
 
-const int led = 13;
+const int led = 13; // LEDの接続ピンを定義
 
+// ルートURLにアクセスした際の処理
 void handleRoot() {
-  digitalWrite(led, 1);
+  digitalWrite(led, 1); // LEDをONにする
 
-  sensorValue = analogRead(0);
-  Serial.print("airquality = ");
-  Serial.print(sensorValue, DEC);
-  Serial.println(" PPM");
+  sensorValue = analogRead(0); // アナログピン0からセンサー値を読み取る
+  Serial.print("airquality = "); // シリアルモニタにメッセージを表示
+  Serial.print(sensorValue, DEC); // 読み取ったセンサー値を表示
+  Serial.println(" PPM"); // 単位を表示
 
-  String message = "";
+  String message = ""; // 返送するメッセージを初期化
   
-  message += "{";
+  message += "{"; // JSON形式でメッセージを開始
   
-  message += "\"airquality\":{\"product\":\"mq135\",\"value\":";
-  message += analogRead(0);
-  message += ",\"unit\":\"ppm\"}";
+  message += "\"airquality\":{\"product\":\"mq135\",\"value\":"; // センサー情報を追加
+  message += analogRead(0); // センサーの値を追加
+  message += ",\"unit\":\"ppm\"}"; // 単位を追加
 
-  message += "}";
+  message += "}"; // JSON形式でメッセージを終了
   
-  server.send(200, "application/json", message );
-  digitalWrite(led, 0);
-
+  server.send(200, "application/json", message ); // HTTPレスポンスを送信
+  digitalWrite(led, 0); // LEDをOFFにする
 }
 
+// 存在しないURLにアクセスした際の処理
 void handleNotFound() {
-  digitalWrite(led, 1);
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
+  digitalWrite(led, 1); // LEDをONにする
+  String message = "File Not Found\n\n"; // エラーメッセージを初期化
+  message += "URI: "; // リクエストURIを追加
+  message += server.uri(); // URIを追加
+  message += "\nMethod: "; // HTTPメソッドを追加
+  message += (server.method() == HTTP_GET) ? "GET" : "POST"; // メソッドを表示
+  message += "\nArguments: "; // 引数を追加
+  message += server.args(); // 引数の数を追加
+  message += "\n"; // 改行
+
+  // 引数の詳細を追加
   for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n"; // 引数名と値を表示
   }
-  server.send(404, "text/plain", message);
-  digitalWrite(led, 0);
+  server.send(404, "text/plain", message); // 404エラーレスポンスを送信
+  digitalWrite(led, 0); // LEDをOFFにする
 }
 
+// セットアップ関数
 void setup(void) {
   
-  pinMode(led, OUTPUT);
-  digitalWrite(led, 0);
+  pinMode(led, OUTPUT); // LEDピンを出力モードに設定
+  digitalWrite(led, 0); // LEDをOFFにする
 
-  Serial.begin(115200);
+  Serial.begin(115200); // シリアル通信を115200ボーで開始
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.mode(WIFI_STA); // WiFiモードをステーションに設定
+  WiFi.begin(ssid, password); // WiFi接続を開始
   Serial.println("");
 
-  // Wait for connection
+  // WiFi接続待機
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+    delay(500); // 500ms待機
+    Serial.print("."); // 接続中のドットを表示
   }
   Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  Serial.print("Connected to "); // 接続完了メッセージを表示
+  Serial.println(ssid); // 接続したSSIDを表示
+  Serial.print("IP address: "); // IPアドレスを表示するメッセージ
+  Serial.println(WiFi.localIP()); // ESP8266のIPアドレスを表示
 
+  // mDNSを開始
   if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started");
+    Serial.println("MDNS responder started"); // mDNS開始メッセージ
   }
 
+  // ルートURLへのハンドラを設定
   server.on("/", handleRoot);
 
-  server.on("/inline", []() {
-    server.send(200, "text/plain", "this works as well");
-  });
-
+  // 存在しないURLへのハンドラを設定
   server.onNotFound(handleNotFound);
 
-  server.begin();
-  Serial.println("HTTP server started");
-  
+  server.begin(); // Webサーバーの開始
+  Serial.println("HTTP server started"); // サーバー開始メッセージ
 }
 
+// メインループ
 void loop(void) {
-  server.handleClient();
-  MDNS.update();
+  server.handleClient(); // クライアントからのリクエストを処理
+  MDNS.update(); // mDNSサービスの更新
 }
