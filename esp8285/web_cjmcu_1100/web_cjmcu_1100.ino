@@ -57,32 +57,29 @@ void setup(void) {
 
   Serial.begin(115200);
 
-  WiFi.mode(WIFI_STA);
+  // Wi-Fi接続
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
-  Serial.println("");
-
-  // Wait for connection
+  Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+    delay(1000);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
+  Serial.println("\nWiFi connected");
+
+  // ESP8266のIPアドレスを表示
+  Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  if (MDNS.begin("esp8266")) {
+  // mDNSサービスを開始
+  if (MDNS.begin(hostname)) {
     Serial.println("MDNS responder started");
+  } else {
+    Serial.println("Error setting up MDNS responder!");
   }
 
   server.on("/", handleRoot);
-
-  server.on("/inline", []() {
-    server.send(200, "text/plain", "this works as well");
-  });
-
+  
   server.onNotFound(handleNotFound);
 
   server.begin();
