@@ -24,13 +24,10 @@ void handleRoot() {
   Serial.println(" PPM"); // 単位を表示
 
   String message = ""; // 返送するメッセージを初期化
-  
   message += "{"; // JSON形式でメッセージを開始
-  
   message += "\"airquality\":{\"product\":\"mq135\",\"value\":"; // センサー情報を追加
   message += analogRead(0); // センサーの値を追加
   message += ",\"unit\":\"ppm\"}"; // 単位を追加
-
   message += "}"; // JSON形式でメッセージを終了
   
   server.send(200, "application/json", message ); // HTTPレスポンスを送信
@@ -64,28 +61,28 @@ void setup(void) {
   digitalWrite(led, 0); // LEDをOFFにする
 
   Serial.begin(115200); // シリアル通信を115200ボーで開始
-
-  WiFi.mode(WIFI_STA); // WiFiモードをステーションに設定
+  
+  // Wi-Fi接続
   WiFi.hostname(hostname);
-  WiFi.begin(ssid, password); // WiFi接続を開始
-  Serial.println("");
-
-  // WiFi接続待機
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500); // 500ms待機
-    Serial.print("."); // 接続中のドットを表示
+    delay(1000);
+    Serial.print(".");
   }
-  Serial.println("");
-  Serial.print("Connected to "); // 接続完了メッセージを表示
-  Serial.println(ssid); // 接続したSSIDを表示
-  Serial.print("IP address: "); // IPアドレスを表示するメッセージ
-  Serial.println(WiFi.localIP()); // ESP8266のIPアドレスを表示
+  Serial.println("\nWiFi connected");
 
-  // mDNSを開始
-  if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started"); // mDNS開始メッセージ
+  // ESP8266のIPアドレスを表示
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+
+  // mDNSサービスを開始
+  if (MDNS.begin(hostname)) {
+    Serial.println("MDNS responder started");
+  } else {
+    Serial.println("Error setting up MDNS responder!");
   }
-
+  
   // ルートURLへのハンドラを設定
   server.on("/", handleRoot);
 
