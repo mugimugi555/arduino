@@ -18,3 +18,7 @@ arduino-cli core update-index
 arduino-cli core install esp8266:esp8266
 arduino-cli core list
 ````
+# Compile and Upload command
+````bash
+bash uploadesp8266.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
+````
