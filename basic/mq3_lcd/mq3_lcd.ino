@@ -13,11 +13,12 @@ const int AQ0 = A0;   //MQ-3センサモジュールA0の出力先
 //
 void setup() {
   
-  Serial.begin (9600); 
+  //
+  Serial.begin(115200);
 
   // init lcd
   lcd.init();
-  lcd.clear();         
+  lcd.clear();
   lcd.backlight();      // Make sure backlight is on
   
   // show title
@@ -29,6 +30,7 @@ void setup() {
 //
 void loop() {
 
+  //
   float A0_out;
 
   // read alcohol sensor analog 0 pin

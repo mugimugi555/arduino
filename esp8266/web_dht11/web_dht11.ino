@@ -3,17 +3,23 @@
 #include <DHT.h>
 #include <ESP8266mDNS.h>  // mDNSライブラリのインクルード
 
+//
 #define DHTPIN 2      // DHTセンサーを接続するピン（GPIO2: D4ピン）
 #define DHTTYPE DHT11 // DHTセンサーの種類（DHT11 または DHT22）
-
 DHT dht(DHTPIN, DHTTYPE);
+
+// WiFi SSIDとパスワードをホスト名を指定
+const char* ssid     = "WIFISSID"  ;
+const char* password = "WIFIPASSWD";
+const char* hostname = "HOSTNAME"  ;  // ホスト名を指定
+
+//
 ESP8266WebServer server(80);
 
-const char* ssid = "WIFISSID";
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME";  // ホスト名を指定
-
+//
 void setup() {
+
+  //
   Serial.begin(115200);
 
   // Wi-Fi接続
@@ -41,8 +47,10 @@ void setup() {
   server.on("/", handleRoot);
   server.begin();
   Serial.println("HTTP server started");
+
 }
 
+//
 void loop() {
   server.handleClient();
   MDNS.update();  // mDNSサービスの更新
@@ -51,8 +59,9 @@ void loop() {
 // 
 void handleRoot() {
 
+  //
   float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
+  float humidity    = dht.readHumidity();
 
   // センサーの読み取りエラーがないか確認
   if (isnan(temperature) || isnan(humidity)) {
@@ -67,5 +76,7 @@ void handleRoot() {
   json += String(humidity);
   json += "}";
 
+  //
   server.send(200, "application/json", json);
+
 }

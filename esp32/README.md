@@ -20,3 +20,8 @@ arduino-cli core install esp32:esp32
 ````
 arduino-cli core list
 ````
+
+#
+````
+bash uploadesp32.sh web
+````

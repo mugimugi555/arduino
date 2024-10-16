@@ -3,64 +3,29 @@
 #include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
 #include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
 
-// WiFi SSIDとパスワードを定義。これらが未定義の場合、デフォルト値を設定。
-const char* ssid = "WIFISSID";
+// WiFi SSIDとパスワードをホスト名を指定
+const char* ssid     = "WIFISSID"  ;
 const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME";  // ホスト名を指定
+const char* hostname = "HOSTNAME"  ;
 
-int sensorValue; // センサー値を格納するための変数
+// センサー値を格納するための変数
+int sensorValue;
 
-ESP8266WebServer server(80); // ポート80でWebサーバーを作成
+// ポート80でWebサーバーを作成
+ESP8266WebServer server(80);
 
-const int led = 13; // LEDの接続ピンを定義
-
-// ルートURLにアクセスした際の処理
-void handleRoot() {
-  digitalWrite(led, 1); // LEDをONにする
-
-  sensorValue = analogRead(0); // アナログピン0からセンサー値を読み取る
-  Serial.print("airquality = "); // シリアルモニタにメッセージを表示
-  Serial.print(sensorValue, DEC); // 読み取ったセンサー値を表示
-  Serial.println(" PPM"); // 単位を表示
-
-  String message = ""; // 返送するメッセージを初期化
-  message += "{"; // JSON形式でメッセージを開始
-  message += "\"airquality\":{\"product\":\"mq135\",\"value\":"; // センサー情報を追加
-  message += analogRead(0); // センサーの値を追加
-  message += ",\"unit\":\"ppm\"}"; // 単位を追加
-  message += "}"; // JSON形式でメッセージを終了
-  
-  server.send(200, "application/json", message ); // HTTPレスポンスを送信
-  digitalWrite(led, 0); // LEDをOFFにする
-}
-
-// 存在しないURLにアクセスした際の処理
-void handleNotFound() {
-  digitalWrite(led, 1); // LEDをONにする
-  String message = "File Not Found\n\n"; // エラーメッセージを初期化
-  message += "URI: "; // リクエストURIを追加
-  message += server.uri(); // URIを追加
-  message += "\nMethod: "; // HTTPメソッドを追加
-  message += (server.method() == HTTP_GET) ? "GET" : "POST"; // メソッドを表示
-  message += "\nArguments: "; // 引数を追加
-  message += server.args(); // 引数の数を追加
-  message += "\n"; // 改行
-
-  // 引数の詳細を追加
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n"; // 引数名と値を表示
-  }
-  server.send(404, "text/plain", message); // 404エラーレスポンスを送信
-  digitalWrite(led, 0); // LEDをOFFにする
-}
+// LEDの接続ピンを定義
+const int led = 13;
 
 // セットアップ関数
 void setup(void) {
   
-  pinMode(led, OUTPUT); // LEDピンを出力モードに設定
-  digitalWrite(led, 0); // LEDをOFFにする
+  // LEDピンを出力モードに設定
+  pinMode(led, OUTPUT);
+  digitalWrite(led, 0);
 
-  Serial.begin(115200); // シリアル通信を115200ボーで開始
+  // シリアル通信を115200ボーで開始
+  Serial.begin(115200);
   
   // Wi-Fi接続
   WiFi.hostname(hostname);
@@ -89,12 +54,73 @@ void setup(void) {
   // 存在しないURLへのハンドラを設定
   server.onNotFound(handleNotFound);
 
-  server.begin(); // Webサーバーの開始
-  Serial.println("HTTP server started"); // サーバー開始メッセージ
+  // Webサーバーの開始
+  server.begin();
+
+  // サーバー開始メッセージ
+  Serial.println("HTTP server started");
+
 }
 
 // メインループ
 void loop(void) {
   server.handleClient(); // クライアントからのリクエストを処理
   MDNS.update(); // mDNSサービスの更新
+}
+
+// ルートURLにアクセスした際の処理
+void handleRoot() {
+
+  //
+  digitalWrite(led, 1); // LEDをONにする
+
+  // アナログピン0からセンサー値を読み取る
+  sensorValue = analogRead(0);
+  Serial.print("airquality = ");
+  Serial.print(sensorValue, DEC);
+  Serial.println(" PPM");
+
+  // JSON形式でメッセージを開始
+  String message = "";
+  message += '{';
+  message += '"airquality":{"product":"mq135","value":';
+  message += analogRead(0);
+  message += ',"unit":"ppm"}';
+  message += '}';
+
+  // HTTPレスポンスを送信
+  server.send(200, "application/json", message );
+
+  // LEDをOFFにする
+  digitalWrite(led, 0);
+
+}
+
+// 存在しないURLにアクセスした際の処理
+void handleNotFound() {
+
+  // LEDをONにする
+  digitalWrite(led, 1);
+
+  // エラーメッセージ
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+
+  // 引数の詳細を追加
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+
+  // 404エラーレスポンスを送信
+  server.send(404, "text/plain", message);
+
+  // LEDをOFFにする
+  digitalWrite(led, 0);
+
 }
