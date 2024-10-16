@@ -37,6 +37,7 @@ void setup() {
 //
 void loop() {
   server.handleClient(); // クライアントからのリクエストを処理
+  MDNS.update();  // mDNSサービスの更新
 }
 
 //
