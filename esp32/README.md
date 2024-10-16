@@ -21,5 +21,5 @@ arduino-cli core list
 
 # Compile and Upload command
 ````bash
-bash uploadesp32.sh web_bmp180/web_bmp180.ino wifissid wifipasswd hostname
+bash upload_esp32.sh web_bmp180/web_bmp180.ino wifissid wifipasswd hostname
 ````
