@@ -20,5 +20,5 @@ arduino-cli core list
 ````
 # Compile and Upload command
 ````bash
-bash uploadesp8266.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
+bash upload_esp8266.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
 ````
