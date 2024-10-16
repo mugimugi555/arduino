@@ -101,21 +101,34 @@ void connectToWiFi() {
 }
 
 void handleRoot() {
-
   // Turn on the LED
   digitalWrite(led, 1);
 
-  // Create and send the JSON response
-  String message = String('{"temperature":{"value":') + bmp.readTemperature()               + ',"unit":"*C"},'     +
-                   String('"pressure":{"value":')     + bmp.readPressure() / 100.0f         + ',"unit":"hPa"},'    +
-                   String('"altitude":{"value":')     + bmp.readAltitude()                  + ',"unit":"meters"},' +
-                   String('"sealevel":{"value":')     + bmp.readSealevelPressure() / 100.0f + ',"unit":"hPa"}}';
+  // Read sensor data
+  float temperature = bmp.readTemperature();
+  float pressure = bmp.readPressure() / 100.0f;
+  float altitude = bmp.readAltitude();
+  float sealevelPressure = bmp.readSealevelPressure() / 100.0f;
 
-  // Send the response to the client
-  server.send(200, "text/plain", message);
+  // Create and send the JSON response
+  String message = String('{"temperature":{"value":') + temperature + ',"unit":"*C"},' +
+                   String('"pressure":{"value":')     + pressure   + ',"unit":"hPa"},' +
+                   String('"altitude":{"value":')     + altitude   + ',"unit":"meters"},' +
+                   String('"sealevel":{"value":')     + sealevelPressure + ',"unit":"hPa"}}';
+
+  // Send the JSON response to the client
+  server.send(200, "application/json", message);
+
+  // Output CSV data to Serial
+  Serial.print(temperature);
+  Serial.print(",");
+  Serial.print(pressure);
+  Serial.print(",");
+  Serial.print(altitude);
+  Serial.print(",");
+  Serial.println(sealevelPressure);
 
   // Turn off the LED
   digitalWrite(led, 0);
-
 }
 
