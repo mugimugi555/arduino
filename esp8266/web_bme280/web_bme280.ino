@@ -93,13 +93,13 @@ void connectToWiFi() {
 void handleRoot() {
   // 温度、湿度、気圧の値を取得
   float temperature = bme.readTemperature();
-  float humidity = bme.readHumidity();
-  float pressure = bme.readPressure() / 100.0F; // PaをhPaに変換
+  float humidity    = bme.readHumidity();
+  float pressure    = bme.readPressure() / 100.0F; // PaをhPaに変換
 
   // JSON形式のレスポンスを作成
-  String message = String("{\"temperature\":") + temperature + 
-                   String(",\"humidity\":")    + humidity    + 
-                   String(",\"pressure\":")    + pressure    + "}";
+  String message = String('{"temperature":') + temperature + 
+                   String(',"humidity":')    + humidity    + 
+                   String(',"pressure":')    + pressure    + "}";
 
   // レスポンスをクライアントに送信
   server.send(200, "application/json", message);
