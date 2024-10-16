@@ -111,9 +111,9 @@ void handleRoot() {
   float sealevelPressure = bmp.readSealevelPressure() / 100.0f;
 
   // Create and send the JSON response
-  String message = String('{"temperature":{"value":') + temperature + ',"unit":"*C"},' +
-                   String('"pressure":{"value":')     + pressure   + ',"unit":"hPa"},' +
-                   String('"altitude":{"value":')     + altitude   + ',"unit":"meters"},' +
+  String message = String('{"temperature":{"value":') + temperature      + ',"unit":"*C"},'     +
+                   String('"pressure":{"value":')     + pressure         + ',"unit":"hPa"},'    +
+                   String('"altitude":{"value":')     + altitude         + ',"unit":"meters"},' +
                    String('"sealevel":{"value":')     + sealevelPressure + ',"unit":"hPa"}}';
 
   // Send the JSON response to the client
