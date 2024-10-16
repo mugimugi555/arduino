@@ -1,4 +1,17 @@
-#
+# install Arduino IDE
+````
+sudo add-apt-repository universe
+sudo apt install -y libfuse2
+#SUBSYSTEMS=="usb", ATTRS{idVendor}=="2341", GROUP="plugdev", MODE="0666"
+echo 'KERNEL=="tty[A-Z]*[0-9]|pppox[0-9]*|ircomm[0-9]*|noz[0-9]*|rfcomm[0-9]*", GROUP="dialout", MODE="0666"' | sudo tee /etc/udev/rules.d/99-arduino.rules ;
+
+cd
+wget https://downloads.arduino.cc/arduino-ide/arduino-ide_2.3.3_Linux_64bit.AppImage
+chmod +x arduino-ide_2.3.3_Linux_64bit.AppImage
+./arduino-ide_2.3.3_Linux_64bit.AppImage --no-sandbox
+````
+
+# Install Arduino CLI
 ````
 cd
 curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
