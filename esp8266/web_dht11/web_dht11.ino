@@ -1,7 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#include <DHT.h>
 #include <ESP8266mDNS.h>  // mDNSライブラリのインクルード
+#include <DHT.h>
 
 //
 #define DHTPIN 2      // DHTセンサーを接続するピン（GPIO2: D4ピン）
