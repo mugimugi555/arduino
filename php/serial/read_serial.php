@@ -1,38 +1,31 @@
 <?php
+require 'vendor/autoload.php';
 
-// wget https://raw.githubusercontent.com/mugimugi555/arduino/main/php/serial/read_serial.php && php read_serial.php ;
+use Lp\SerialPort\SerialPort;
 
-// https://github.com/lepiaf/serialport/blob/master/example/arduino.php
-//
-// php read_serial.php ;
+// シリアルポートを設定します (デバイスパスは環境に応じて変更)
+$serialPort = new SerialPort("/dev/ttyUSB0");
 
-require_once './vendor/autoload.php';
+// シリアル通信の設定
+$serialPort->configure(115200);
 
-use lepiaf\SerialPort\SerialPort;
-use lepiaf\SerialPort\Parser\SeparatorParser;
-use lepiaf\SerialPort\Configure\TTYConfigure;
+// ポートを開く
+$serialPort->open();
 
-//change baud rate
-$configure = new TTYConfigure();
-$configure->removeOption("9600");
-$configure->setOption("115200");
+// 無限ループでデータを読み続ける
+while (true) {
+    // データを読み取る
+    $data = $serialPort->read(100);  // 100バイト読み込む
 
-$serialPort = new SerialPort(new SeparatorParser("\n"), $configure);
-$serialPort->open("/dev/ttyUSB0");
-
-$addMoreCountOnce = true;
-
-while ($data = $serialPort->read()) {
-  var_dump($data);
-
-  if ($data === "END COUNT") {
-    if ($addMoreCountOnce === false) {
-      break;
+    // 取得したデータを表示
+    if ($data) {
+        echo "Received data: " . $data . "\n";
     }
 
-    $serialPort->write("10\n");
-    $addMoreCountOnce = false;
-  }
+    // CPUの使用率を下げるために少し待つ
+    usleep(100000);  // 100ミリ秒待機
 }
 
+// ポートを閉じる (実際にはCtrl+Cで停止するまで到達しない)
 $serialPort->close();
+?>
