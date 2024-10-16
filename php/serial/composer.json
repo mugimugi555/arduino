@@ -1,5 +1,0 @@
-{
-    "require": {
-        "lepiaf/serialport": "^1.1"
-    }
-}
