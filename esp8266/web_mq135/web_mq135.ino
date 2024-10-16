@@ -1,7 +1,7 @@
 #include <ESP8266WiFi.h>       // ESP8266用のWiFiライブラリをインクルード
-#include <WiFiClient.h>        // WiFiクライアント用ライブラリをインクルード
 #include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
 #include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
+#include <WiFiClient.h>        // WiFiクライアント用ライブラリをインクルード
 
 // WiFi SSIDとパスワードをホスト名を指定
 const char* ssid     = "WIFISSID"  ;
