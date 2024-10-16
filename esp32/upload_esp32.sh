@@ -10,7 +10,7 @@ fi
 SKETCH_PATH=$1      # Arduinoスケッチファイルのパス
 WIFI_SSID=$2        # WiFi SSID
 WIFI_PASSWORD=$3    # WiFi パスワード
-HOSTNAME=$4         # ESP832のホスト名
+HOSTNAME=$4         # ESP32のホスト名
 
 #
 BOARD_NAME=esp32:esp32:esp32
