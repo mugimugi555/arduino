@@ -1,9 +1,10 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 
-// WiFiの設定
-const char* ssid = "YOUR_SSID";      // WiFi SSID
-const char* password = "YOUR_PASSWORD"; // WiFiパスワード
+// WiFi SSIDとパスワードをホスト名を指定
+const char* ssid     = "WIFISSID"  ;
+const char* password = "WIFIPASSWD";
+const char* hostname = "HOSTNAME"  ;
 
 // MQセンサーのアナログピンの定義
 const int MQ2_PIN = 34; // MQ-2 センサー LPG、ブタン、プロパン、煙、アルコールなど
@@ -22,14 +23,7 @@ void setup() {
   Serial.begin(115200); // シリアル通信の初期化
 
   // WiFiに接続
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
-  Serial.println("Connected to WiFi");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  connectToWiFi();
 
   // サーバーを開始
   server.begin();
@@ -43,7 +37,7 @@ void loop() {
     client.flush();
     
     // HTTPリクエストを処理
-    if (request.indexOf("GET /data") != -1) {
+    if (request.indexOf("GET /") != -1) {
       // MQセンサーの値を読み取る
       int mq2Value = analogRead(MQ2_PIN);
       int mq3Value = analogRead(MQ3_PIN);
@@ -88,4 +82,53 @@ void loop() {
     // クライアントを切断
     client.stop();
   }
+}
+
+//
+void connectToWiFi() {
+
+  // Connect to WiFi
+  WiFi.hostname(hostname);
+  WiFi.begin(ssid, password);
+
+  // Wait for WiFi connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+
+  // Display the ESP32's hostname
+  Serial.print("Hostname: http://");
+  Serial.print(WiFi.getHostname());
+  Serial.println(".local");
+
+  // Display the ESP32's IP address
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  // Display subnet mask
+  Serial.print("Subnet Mask: ");
+  Serial.println(WiFi.subnetMask());
+
+  // Display gateway IP
+  Serial.print("Gateway IP: ");
+  Serial.println(WiFi.gatewayIP());
+
+  // Display DNS server IP
+  Serial.print("DNS IP: ");
+  Serial.println(WiFi.dnsIP());
+
+  // Display the ESP32's MAC address
+  Serial.print("MAC address: ");
+  Serial.println(WiFi.macAddress());
+
+  // Start mDNS responder
+  if (MDNS.begin("esp32")) {
+    Serial.println("MDNS responder started");
+  }
+
 }
