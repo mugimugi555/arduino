@@ -18,6 +18,13 @@ arduino-cli core update-index
 arduino-cli core install esp8266:esp8266
 arduino-cli core list
 ````
+# Install Library
+````bash
+arduino-cli lib install "Adafruit BME280 Library"
+arduino-cli lib install "Adafruit BusIO"
+arduino-cli lib install "Adafruit Unified Sensor"
+arduino-cli lib install "DHT sensor library"
+````
 # Compile and Upload command
 ````bash
 bash upload_esp8266.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
