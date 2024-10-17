@@ -13,7 +13,7 @@ WIFI_PASSWORD=$3    # WiFi パスワード
 HOSTNAME=$4         # ESP01のホスト名
 
 # ESP01用のボード設定
-BOARD_NAME=esp8266:esp8266:generic
+BOARD_NAME=esp8266:esp8266:esp01
 SERIAL_BAND=115200
 
 # ランダムなフォルダを作成
