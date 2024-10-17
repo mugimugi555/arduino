@@ -30,5 +30,5 @@ arduino-cli lib install "HX711 Arduino Library"
 ````
 # Compile and Upload command
 ````bash
-bash upload_esp32.sh web_bmp180/web_bmp180.ino wifissid wifipasswd hostname
+bash upload_esp32.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
 ````
