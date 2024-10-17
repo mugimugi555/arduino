@@ -1,4 +1,4 @@
-# install Arduino IDE
+# Install Arduino IDE
 ````bash
 sudo add-apt-repository universe
 sudo apt install -y libfuse2
