@@ -18,7 +18,16 @@ arduino-cli core update-index
 arduino-cli core install esp32:esp32
 arduino-cli core list
 ````
-
+# Install Library
+````bash
+arduino-cli lib install "Adafruit BME280 Library"
+arduino-cli lib install "Adafruit BusIO"
+arduino-cli lib install "Adafruit Unified Sensor"
+arduino-cli lib install "DHT sensor library"
+arduino-cli lib install "ESP32 BLE Keyboard"
+arduino-cli lib install "ESP32 BLE Mouse"
+arduino-cli lib install "HX711 Arduino Library"
+````
 # Compile and Upload command
 ````bash
 bash upload_esp32.sh web_bmp180/web_bmp180.ino wifissid wifipasswd hostname
