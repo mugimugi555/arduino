@@ -55,3 +55,4 @@ fi
 
 # 一時ファイルを削除
 rm "$TEMP_SKETCH"
+rmdir "$RANDOM_DIR"

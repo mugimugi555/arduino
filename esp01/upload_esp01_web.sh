@@ -1,4 +1,4 @@
-
+#!/bin/bash
 
 # 引数の確認
 if [ "$#" -ne 4 ]; then
@@ -13,7 +13,7 @@ WIFI_PASSWORD=$3    # WiFi パスワード
 HOSTNAME=$4         # ESP01のホスト名
 
 # ESP01用のボード設定
-BOARD_NAME=esp8266:esp8266:esp01
+BOARD_NAME=esp8266:esp8266:generic
 SERIAL_BAND=115200
 
 # ランダムなフォルダを作成
@@ -57,3 +57,4 @@ fi
 
 # 一時ファイルを削除
 rm "$TEMP_SKETCH"
+rmdir "$RANDOM_DIR"
