@@ -71,7 +71,14 @@ void connectToWiFi() {
     Serial.print(".");
   }
 
+  // mDNSサービスの開始
   Serial.println("");
+  if (MDNS.begin(hostname)) {
+    Serial.println("mDNS responder started");
+  } else {
+    Serial.println("Error setting up mDNS responder!");
+  }
+
   Serial.print("Connected to ");
   Serial.println(ssid);
   Serial.println("===============================================");

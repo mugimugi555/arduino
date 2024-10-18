@@ -39,11 +39,9 @@ ESP8266WebServer server(80); // Webサーバーのインスタンスを作成
 void setup() {
 
   Serial.begin(115200); // シリアル通信を開始
-
   dht.begin();          // DHTセンサーの初期化
   connectToWiFi();      // WiFi接続の開始
   setupWebServer();     // Webサーバーの設定
-  setupMDNS();          // mDNS responderの初期化
 
 }
 
@@ -72,12 +70,21 @@ void connectToWiFi() {
     Serial.print(".");
   }
 
+  // mDNSサービスの開始
   Serial.println("");
+  if (MDNS.begin(hostname)) {
+    Serial.println("mDNS responder started");
+  } else {
+    Serial.println("Error setting up mDNS responder!");
+  }
+
   Serial.print("Connected to ");
   Serial.println(ssid);
   Serial.println("===============================================");
   Serial.println("              Network Details                  ");
   Serial.println("===============================================");
+  Serial.print("WebServer    : http://");
+  Serial.println(WiFi.localIP());
   Serial.print("Hostname     : http://");
   Serial.print(hostname);
   Serial.println(".local");
@@ -126,6 +133,7 @@ void handleRoot() {
   doc["temperature"] = temperature;
   doc["humidity"]    = humidity;
   serializeJson(doc, json);
+  Serial.println(json);
 
   server.send(200, "application/json", json);
 
@@ -141,27 +149,32 @@ void outputSensorData() {
   if (currentMillis - previousMillis >= interval) {
 
     previousMillis = currentMillis; // 現在の時刻を保存
-
-    // DHT センサーから温度と湿度を読み取る
-    float temperature = dht.readTemperature();
-    float humidity    = dht.readHumidity();
-
-    // センサーの読み取りエラーがないか確認
-    if (isnan(temperature) || isnan(humidity)) {
-      Serial.println("Sensor reading failed");
-      return;
-    }
-
-    // JSONオブジェクトの作成
-    StaticJsonDocument<200> jsonDoc;
-    jsonDoc["temperature"] = temperature;
-    jsonDoc["humidity"]    = humidity;
-
-    // JSON形式でシリアル出力
-    String json;
-    serializeJson(jsonDoc, json);
-    Serial.println(json);
+    outputSensorDataJson();
 
   }
+
+}
+
+void outputSensorDataJson() {
+
+  // DHT センサーから温度と湿度を読み取る
+  float temperature = dht.readTemperature();
+  float humidity    = dht.readHumidity();
+
+  // センサーの読み取りエラーがないか確認
+  if (isnan(temperature) || isnan(humidity)) {
+    Serial.println("Sensor reading failed");
+    return;
+  }
+
+  // JSONオブジェクトの作成
+  StaticJsonDocument<200> jsonDoc;
+  jsonDoc["temperature"] = temperature;
+  jsonDoc["humidity"]    = humidity;
+
+  // JSON形式でシリアル出力
+  String json;
+  serializeJson(jsonDoc, json);
+  Serial.println(json);
 
 }
