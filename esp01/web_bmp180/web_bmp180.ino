@@ -1,18 +1,17 @@
 //----------------------------------------------------------------------------
 // ライブラリのインストールとコンパイルコマンド
 //----------------------------------------------------------------------------
-// arduino-cli lib install "Adafruit BME280 Library"
-// arduino-cli lib install "Adafruit BusIO"
+// arduino-cli lib install "Adafruit BMP085 Unified"
 // arduino-cli lib install "Adafruit Unified Sensor"
 // arduino-cli lib install "ArduinoJson"
-// bash upload_esp01_web.sh web_bme280/web_bme280.ino wifissid wifipasswd hostname
+// bash upload_esp01_web.sh web_bmp180/web_bmp180.ino wifissid wifipasswd hostname
 
 //----------------------------------------------------------------------------
 // ライブラリのインクルード
 //----------------------------------------------------------------------------
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
+#include <Adafruit_BMP085_U.h>
 #include <ESP8266WiFi.h>      // ESP8266用のWi-Fiライブラリ
 #include <ESP8266WebServer.h> // ESP8266用のWebサーバーライブラリ
 #include <ESP8266mDNS.h>      // ESP8266用のmDNSライブラリ
@@ -22,27 +21,17 @@
 // 定数と変数の定義
 //----------------------------------------------------------------------------
 
-// WiFi SSIDとパスワードをホスト名を指定
-const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+// WiFi SSIDとパスワード、ホスト名を指定
+const char* ssid     = "WIFISSID";  // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
-const char* hostname = "HOSTNAME"  ; // ESP-01のホスト名
-
-//----------------------------------------------------------------------------
-// GPIO接続方法
-//----------------------------------------------------------------------------
-
-// ESP01とBME280センサーの接続:
-// SCL (クロック信号) -> GPIO0 (D3ピン)
-// SDA (データ信号)   -> GPIO2 (D4ピン)
-// VCC -> 3.3V
-// GND -> GND
+const char* hostname = "HOSTNAME";  // ESP-01のホスト名
 
 // I2Cのピン設定
 #define I2C_SCL 0  // GPIO0 (D3ピン)
 #define I2C_SDA 2  // GPIO2 (D4ピン)
 
-// BME280オブジェクトの作成
-Adafruit_BME280 bme;
+// BMP180オブジェクトの作成
+Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 
 // Webサーバーのポート番号
 ESP8266WebServer server(80);
@@ -62,15 +51,14 @@ void setup() {
   // I2Cピンの設定
   Wire.begin(I2C_SDA, I2C_SCL);
 
-  // BME280センサーの初期化
-  if (!bme.begin(0x76)) {
-    Serial.println("BME280センサーが見つかりません。接続を確認してください。");
+  // BMP180センサーの初期化
+  if (!bmp.begin()) {
+    Serial.println("BMP180センサーが見つかりません。接続を確認してください。");
     while (1);
   }
 
   connectToWiFi();   // WiFi接続
   setupWebServer();  // Webサーバーの設定
-
 }
 
 //----------------------------------------------------------------------------
@@ -79,9 +67,8 @@ void setup() {
 void loop() {
 
   server.handleClient(); // クライアントからのリクエストを処理
-  outputSensorData();   // 5秒ごとにLEDの状態をシリアル出力
+  outputSensorData();    // 5秒ごとにセンサーデータをシリアル出力
   MDNS.update();         // mDNSサービスの更新
-
 }
 
 //----------------------------------------------------------------------------
@@ -127,7 +114,6 @@ void connectToWiFi() {
   Serial.print("MAC address  : ");
   Serial.println(WiFi.macAddress());
   Serial.println("===============================================");
-
 }
 
 //----------------------------------------------------------------------------
@@ -139,7 +125,6 @@ void setupWebServer() {
   server.on("/", handleRoot);
   server.begin();
   Serial.println("HTTP server started");
-
 }
 
 //----------------------------------------------------------------------------
@@ -153,7 +138,6 @@ void handleRoot() {
   // レスポンスをクライアントに送信
   server.send(200, "application/json", jsonResponse);
   Serial.println(jsonResponse);
-
 }
 
 //----------------------------------------------------------------------------
@@ -161,18 +145,19 @@ void handleRoot() {
 //----------------------------------------------------------------------------
 String getSensorDataJson() {
 
-  // 温度、湿度、気圧の値を取得
-  float temperature = bme.readTemperature();
-  float humidity    = bme.readHumidity();
-  float pressure    = bme.readPressure() / 100.0F; // PaをhPaに変換
+  // 温度、気圧の値を取得
+  sensors_event_t event;
+  bmp.getEvent(&event);
+
+  float temperature;
+  bmp.getTemperature(&temperature);
 
   // JSON形式のレスポンスを作成
-  StaticJsonDocument<200> jsonDoc;      // JSONドキュメントを作成
-  jsonDoc["temperature"] = temperature; // 温度を設定
-  jsonDoc["humidity"]    = humidity;    // 湿度を設定
-  jsonDoc["pressure"]    = pressure;    // 気圧を設定
-  jsonDoc["sensor"]      = "bme280";    // センサー名
-  jsonDoc["hostname"]    = hostname;    // ホスト名
+  StaticJsonDocument<200> jsonDoc;         // JSONドキュメントを作成
+  jsonDoc["temperature"] = temperature;    // 温度を設定
+  jsonDoc["pressure"]    = event.pressure; // 気圧を設定
+  jsonDoc["sensor"]      = "bmp180";       // センサー名
+  jsonDoc["hostname"]    = hostname;       // ホスト名
   jsonDoc["ipaddress"]   = WiFi.localIP().toString(); // IPアドレス
 
   // JSON形式の文字列を返す
@@ -180,7 +165,6 @@ String getSensorDataJson() {
   serializeJson(jsonDoc, jsonResponse); // JSONドキュメントを文字列にシリアル化
 
   return jsonResponse;
-
 }
 
 //----------------------------------------------------------------------------
@@ -197,7 +181,5 @@ void outputSensorData() {
     // センサーのデータをJSON形式で取得しシリアル出力
     String json = getSensorDataJson();
     Serial.println(json);
-
   }
-
 }
