@@ -1,4 +1,4 @@
-#!/bin/bash
+
 
 # 引数の確認
 if [ "$#" -ne 4 ]; then
