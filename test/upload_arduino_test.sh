@@ -7,7 +7,9 @@ files=(
   "oled/oled.ino"
 )
 
+cd ../basic
 # 各ファイルに対して処理を実行
 for file in "${files[@]}"; do
   bash upload_arduino.sh "$file"
 done
+cd ../test

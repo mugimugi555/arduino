@@ -6,7 +6,9 @@ files=(
   "bluetooth_mouse_keyboard/bluetooth_mouse_keyboard.ino"
 )
 
+cd ../esp32/bluetooth/
 # 各ファイルに対して処理を実行
 for file in "${files[@]}"; do
   bash upload_esp32_bluetooth.sh "$file"
 done
+cd ../../test/

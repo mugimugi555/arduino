@@ -9,10 +9,12 @@ hostname="hostname"
 files=(
   "web_bme280/web_bme280.ino"
   "web_dht11/web_dht11.ino"
-  "web_led/web_led.ino"
+  "web_mq/web_mq.ino"
 )
 
+cd ../esp32/web/
 # 各ファイルに対して処理を実行
 for file in "${files[@]}"; do
-  bash upload_esp01_web.sh "$file" "$ssid" "$password" "$hostname"
+  bash upload_esp32_web.sh "$file" "$ssid" "$password" "$hostname"
 done
+cd ../../test/
