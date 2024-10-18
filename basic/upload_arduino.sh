@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 引数の確認
-if [ "$#" -ne 4 ]; then
+if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <sketch_path>"
     exit 1
 fi
