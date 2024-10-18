@@ -1,14 +1,14 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
-#include <ESP8266WiFi.h> // ESP8266用のWi-Fiライブラリ
+#include <ESP8266WiFi.h>      // ESP8266用のWi-Fiライブラリ
 #include <ESP8266WebServer.h> // ESP8266用のWebサーバーライブラリ
-#include <ESP8266mDNS.h> // ESP8266用のmDNSライブラリ
+#include <ESP8266mDNS.h>      // ESP8266用のmDNSライブラリ
 
-// WiFi SSIDとパスワード、ホスト名を指定
-const char* ssid     = "WIFISSID";
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME";
+// WiFi SSIDとパスワードをホスト名を指定
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP-01のホスト名
 
 // BME280オブジェクトの作成
 Adafruit_BME280 bme;
@@ -27,6 +27,7 @@ ESP8266WebServer server(80);
 #define I2C_SDA 2  // GPIO2 (D4ピン)
 
 void setup() {
+
   Serial.begin(115200);
 
   // I2Cピンの設定
@@ -52,14 +53,18 @@ void setup() {
   } else {
     Serial.println("Error setting up mDNS responder!");
   }
+
 }
 
 void loop() {
+
   server.handleClient(); // クライアントからのリクエストを処理
   MDNS.update();  // mDNSサービスの更新
+
 }
 
 void connectToWiFi() {
+
   WiFi.hostname(hostname); // ホスト名を設定
   WiFi.begin(ssid, password); // Wi-Fi接続を開始
 
@@ -90,6 +95,7 @@ void connectToWiFi() {
 
 // ルートURLへのリクエストハンドラ
 void handleRoot() {
+
   // 温度、湿度、気圧の値を取得
   float temperature = bme.readTemperature();
   float humidity    = bme.readHumidity();
@@ -102,4 +108,5 @@ void handleRoot() {
 
   // レスポンスをクライアントに送信
   server.send(200, "application/json", message);
+
 }

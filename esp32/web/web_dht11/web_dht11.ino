@@ -8,14 +8,15 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 // WiFi SSIDとパスワードをホスト名を指定
-const char* ssid     = "WIFISSID";
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME";  // ホスト名を指定
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP32のホスト名
 
 // Webサーバーの設定
 WebServer server(80);
 
 void setup() {
+
   Serial.begin(115200);
 
   // DHTセンサーの初期化
@@ -28,14 +29,18 @@ void setup() {
   server.on("/", handleRoot);
   server.begin();
   Serial.println("HTTP server started");
+
 }
 
 void loop() {
+
   server.handleClient();
   MDNS.update();  // mDNSサービスの更新
+
 }
 
 void connectToWiFi() {
+
   // WiFi接続処理
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
@@ -79,9 +84,11 @@ void connectToWiFi() {
   if (MDNS.begin(hostname)) {
     Serial.println("MDNS responder started");
   }
+
 }
 
 void handleRoot() {
+
   // DHTセンサーから温度と湿度を読み取る
   float temperature = dht.readTemperature();
   float humidity    = dht.readHumidity();
@@ -101,4 +108,5 @@ void handleRoot() {
 
   // クライアントにJSONレスポンスを送信
   server.send(200, "application/json", json);
+
 }

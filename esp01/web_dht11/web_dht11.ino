@@ -1,6 +1,6 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>  // mDNSライブラリのインクルード
+#include <ESP8266WiFi.h>       // ESP8266用のWiFiライブラリをインクルード
+#include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
+#include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
 #include <DHT.h>
 
 #define DHTPIN 2      // DHTセンサーを接続するピン（GPIO2: ESP-01で使用可能なピン）
@@ -8,13 +8,14 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 // WiFi SSIDとパスワードをホスト名を指定
-const char* ssid     = "WIFISSID";  // 自分のWi-Fi SSIDに置き換える
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
-const char* hostname = "HOSTNAME";  // ESP-01のホスト名
+const char* hostname = "HOSTNAME"  ; // ESP-01のホスト名
 
 ESP8266WebServer server(80);
 
 void setup() {
+
   Serial.begin(115200);
 
   // DHTセンサーの初期化
@@ -32,15 +33,19 @@ void setup() {
   if (MDNS.begin(hostname)) {
     Serial.println("mDNS responder started");
   }
+
 }
 
 void loop() {
+
   server.handleClient();
   MDNS.update();  // mDNSサービスの更新
+
 }
 
 // WiFiに接続する関数
 void connectToWiFi() {
+
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
 
@@ -73,10 +78,12 @@ void connectToWiFi() {
 
   Serial.print("MAC address: ");
   Serial.println(WiFi.macAddress());
+
 }
 
 // ルートパスにアクセスした際の処理
 void handleRoot() {
+
   float temperature = dht.readTemperature();
   float humidity    = dht.readHumidity();
 
@@ -94,4 +101,5 @@ void handleRoot() {
   json += "}";
 
   server.send(200, "application/json", json);
+
 }

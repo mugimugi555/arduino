@@ -2,9 +2,9 @@
 #include <ArduinoJson.h>
 
 // WiFi SSIDとパスワードをホスト名を指定
-const char* ssid     = "WIFISSID"  ;
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME"  ;
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP32のホスト名
 
 // MQセンサーのアナログピンの定義
 const int MQ2_PIN = 34; // MQ-2 センサー LPG、ブタン、プロパン、煙、アルコールなど
@@ -20,6 +20,7 @@ const int MQ9_PIN = 14; // MQ-9 センサー 一酸化炭素（CO）および可
 WiFiServer server(80);
 
 void setup() {
+
   Serial.begin(115200); // シリアル通信の初期化
 
   // WiFiに接続
@@ -27,12 +28,15 @@ void setup() {
 
   // サーバーを開始
   server.begin();
+
 }
 
 void loop() {
+
   // クライアントが接続しているか確認
   WiFiClient client = server.available();
   if (client) {
+
     String request = client.readStringUntil('\r');
     client.flush();
     
@@ -79,9 +83,12 @@ void loop() {
       client.println();
       client.println(jsonResponse);
     }
+
     // クライアントを切断
     client.stop();
+
   }
+
 }
 
 //

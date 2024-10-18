@@ -1,13 +1,13 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
-#include <ESP8266WiFi.h> // ESP8266用のWi-Fiライブラリ
+#include <ESP8266WiFi.h>      // ESP8266用のWi-Fiライブラリ
 #include <ESP8266WebServer.h> // ESP8266用のWebサーバーライブラリ
 
 // WiFi SSIDとパスワードをホスト名を指定
-const char* ssid     = "WIFISSID"  ;
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME"  ;
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名
 
 // BME280オブジェクトの作成
 Adafruit_BME280 bme;
@@ -17,6 +17,7 @@ ESP8266WebServer server(80);
 
 //
 void setup() {
+
   Serial.begin(115200);
   
   //
@@ -32,6 +33,7 @@ void setup() {
   server.on("/", handleRoot);
   server.begin();
   Serial.println("HTTP server started");
+
 }
 
 //
@@ -91,6 +93,7 @@ void connectToWiFi() {
 
 // ルートURLへのリクエストハンドラ
 void handleRoot() {
+
   // 温度、湿度、気圧の値を取得
   float temperature = bme.readTemperature();
   float humidity    = bme.readHumidity();
@@ -103,4 +106,5 @@ void handleRoot() {
 
   // レスポンスをクライアントに送信
   server.send(200, "application/json", message);
+
 }

@@ -4,9 +4,9 @@
 #include <WiFiClient.h>        // WiFiクライアント用ライブラリをインクルード
 
 // WiFi SSIDとパスワードをホスト名を指定
-const char* ssid     = "WIFISSID"  ;
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME"  ;
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名
 
 // センサー値を格納するための変数
 int sensorValue;

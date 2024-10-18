@@ -1,23 +1,27 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>  // mDNSライブラリのインクルード
+#include <ESP8266WiFi.h>       // ESP8266用のWiFiライブラリをインクルード
+#include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
+#include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
 
 // 湿度センサーのピン設定
 const int moisturePin = A0;  // アナログピンに接続
 
 // WiFi SSIDとパスワードをホスト名を指定
-const char* ssid     = "WIFISSID"  ;
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME"  ;
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名
 
 ESP8266WebServer server(80); // Webサーバーのポート設定
 
 void setup() {
+
   Serial.begin(115200); // シリアル通信を開始
+
   connectToWiFi(); // WiFiに接続
+
   server.on("/", handleRoot); // ルートURLのハンドラ設定
   server.begin(); // サーバーを開始
   Serial.println("HTTP server started");
+
 }
 
 void loop() {
@@ -75,6 +79,7 @@ void connectToWiFi() {
 
 // ルートURLへのリクエストを処理する関数
 void handleRoot() {
+
   // 湿度センサーの値を取得
   int moistureValue = analogRead(moisturePin);
   
@@ -93,4 +98,5 @@ void handleRoot() {
   Serial.print("Soil Moisture: ");
   Serial.print(moisturePercent);
   Serial.println("%");
+
 }

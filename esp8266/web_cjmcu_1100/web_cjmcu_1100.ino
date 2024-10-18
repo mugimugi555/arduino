@@ -1,12 +1,12 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
+#include <ESP8266WiFi.h>       // ESP8266用のWiFiライブラリをインクルード
+#include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
+#include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
 #include <WiFiClient.h>
 
 // WiFi SSIDとパスワードをホスト名を指定
-const char* ssid     = "WIFISSID"  ;
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME"  ;
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名
 
 int sensorValue;
 const int led = 13;

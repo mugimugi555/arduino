@@ -9,10 +9,10 @@ Adafruit_BME280 bme; // BME280オブジェクトの作成
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
-// WiFi SSIDとパスワード
-const char* ssid     = "WIFISSID";
-const char* password = "WIFIPASSWD";
-const char* hostname = "HOSTNAME";
+// WiFi SSIDとパスワードをホスト名を指定
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
+const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP32のホスト名
 
 // LEDピン
 const int led = 13;
@@ -47,11 +47,14 @@ void setup(void) {
 }
 
 void loop(void) {
+
   // クライアントからのリクエストを処理
   server.handleClient();
+
 }
 
 void connectToWiFi() {
+
   // WiFi接続処理
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
@@ -95,9 +98,11 @@ void connectToWiFi() {
   if (MDNS.begin("esp32")) {
     Serial.println("MDNS responder started");
   }
+
 }
 
 void handleRoot() {
+
   // LEDをオンにする
   digitalWrite(led, 1);
 
@@ -123,4 +128,5 @@ void handleRoot() {
 
   // LEDをオフにする
   digitalWrite(led, 0);
+
 }
