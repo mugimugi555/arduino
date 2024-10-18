@@ -1,3 +1,4 @@
+#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>  // mDNSライブラリのインクルード
@@ -15,6 +16,11 @@ const char* hostname = "HOSTNAME"  ; // ESP32のホスト名
 // Webサーバーの設定
 WebServer server(80);
 
+// タイマーの変数
+unsigned long previousMillis = 0; // 前回のシリアル出力時刻
+const long interval = 5000;       // 5秒間隔
+
+//
 void setup() {
 
   Serial.begin(115200);
@@ -32,13 +38,18 @@ void setup() {
 
 }
 
+//
 void loop() {
 
   server.handleClient();
   MDNS.update();  // mDNSサービスの更新
 
+  // 5秒ごとにシリアル出力
+  outputSensorData();
+
 }
 
+//
 void connectToWiFi() {
 
   // WiFi接続処理
@@ -87,11 +98,12 @@ void connectToWiFi() {
 
 }
 
+//
 void handleRoot() {
 
-  // DHTセンサーから温度と湿度を読み取る
+  // DHT センサーから温度と湿度を読み取る
   float temperature = dht.readTemperature();
-  float humidity    = dht.readHumidity();
+  float humidity = dht.readHumidity();
 
   // センサーの読み取りエラーがないか確認
   if (isnan(temperature) || isnan(humidity)) {
@@ -99,14 +111,45 @@ void handleRoot() {
     return;
   }
 
-  // JSON形式でデータを送信
-  String json = "{\"temperature\":";
-  json += String(temperature);
-  json += ",\"humidity\":";
-  json += String(humidity);
-  json += "}";
+  // JSONオブジェクトの作成
+  StaticJsonDocument<200> doc;  // 必要に応じてサイズを調整
+
+  // データの設定
+  doc["temperature"] = temperature;
+  doc["humidity"]    = humidity;
 
   // クライアントにJSONレスポンスを送信
+  String json;
+  serializeJson(doc, json);  // JSONデータを文字列に変換
   server.send(200, "application/json", json);
+
+}
+
+// センサーのデータをシリアル出力する関数
+void outputSensorData() {
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+
+    previousMillis = currentMillis; // 現在の時刻を保存
+
+    // DHT センサーから温度と湿度を読み取る
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
+
+    // センサーの読み取りエラーがないか確認
+    if (isnan(temperature) || isnan(humidity)) {
+      Serial.println("Sensor reading failed");
+      return;
+    }
+
+    // CSV形式でシリアル出力
+    Serial.print("Temperature,Humidity\n"); // ヘッダー
+    Serial.print(temperature);
+    Serial.print(",");
+    Serial.println(humidity);
+
+  }
 
 }
