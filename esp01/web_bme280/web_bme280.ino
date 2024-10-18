@@ -1,3 +1,13 @@
+//============================================================================
+// ライブラリのインストールとコンパイルコマンド
+//============================================================================
+// arduino-cli lib install "DHT sensor library"
+// arduino-cli lib install "ArduinoJson"
+// bash upload_esp01_web.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
+
+//============================================================================
+// ライブラリのインクルード
+//============================================================================
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
@@ -5,6 +15,9 @@
 #include <ESP8266WebServer.h> // ESP8266用のWebサーバーライブラリ
 #include <ESP8266mDNS.h>      // ESP8266用のmDNSライブラリ
 
+//============================================================================
+// 定数と変数の定義
+//============================================================================
 // WiFi SSIDとパスワードをホスト名を指定
 const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
@@ -26,6 +39,9 @@ ESP8266WebServer server(80);
 #define I2C_SCL 0  // GPIO0 (D3ピン)
 #define I2C_SDA 2  // GPIO2 (D4ピン)
 
+//============================================================================
+// 初期設定
+//============================================================================
 void setup() {
 
   Serial.begin(115200);
@@ -56,19 +72,25 @@ void setup() {
 
 }
 
+//============================================================================
+// メインループ
+//============================================================================
 void loop() {
 
   server.handleClient(); // クライアントからのリクエストを処理
-  MDNS.update();  // mDNSサービスの更新
+  MDNS.update();         // mDNSサービスの更新
 
 }
 
+//============================================================================
+// WiFi接続関数
+//============================================================================
 void connectToWiFi() {
 
-  WiFi.hostname(hostname); // ホスト名を設定
-  WiFi.begin(ssid, password); // Wi-Fi接続を開始
+  WiFi.hostname(hostname);
+  WiFi.begin(ssid, password);
 
-  // Wi-Fi接続が完了するまで待つ
+  // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -77,23 +99,31 @@ void connectToWiFi() {
   Serial.println("");
   Serial.print("Connected to ");
   Serial.println(ssid);
-
-  // ESP8266のIPアドレスを表示
-  Serial.print("IP address: ");
+  Serial.println("===============================================");
+  Serial.println("              Network Details                  ");
+  Serial.println("===============================================");
+  Serial.print("WebServer    : http://");
   Serial.println(WiFi.localIP());
-
-  // サブネットマスク、ゲートウェイ、DNS、MACアドレスを表示
-  Serial.print("Subnet Mask: ");
+  Serial.print("Hostname     : http://");
+  Serial.print(hostname);
+  Serial.println(".local");
+  Serial.print("IP address   : ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Subnet Mask  : ");
   Serial.println(WiFi.subnetMask());
-  Serial.print("Gateway IP: ");
+  Serial.print("Gateway IP   : ");
   Serial.println(WiFi.gatewayIP());
-  Serial.print("DNS IP: ");
+  Serial.print("DNS IP       : ");
   Serial.println(WiFi.dnsIP());
-  Serial.print("MAC address: ");
+  Serial.print("MAC address  : ");
   Serial.println(WiFi.macAddress());
+  Serial.println("===============================================");
+
 }
 
-// ルートURLへのリクエストハンドラ
+//============================================================================
+// ルートパス処理関数
+//============================================================================
 void handleRoot() {
 
   // 温度、湿度、気圧の値を取得

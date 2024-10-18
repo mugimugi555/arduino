@@ -98,12 +98,41 @@ void connectToWiFi() {
 
 }
 
+// センサーのデータをシリアル出力する関数
+void outputSensorData() {
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+
+    previousMillis = currentMillis; // 現在の時刻を保存
+
+    // DHT センサーから温度と湿度を読み取る
+    float temperature = dht.readTemperature();
+    float humidity    = dht.readHumidity();
+
+    // センサーの読み取りエラーがないか確認
+    if (isnan(temperature) || isnan(humidity)) {
+      Serial.println("Sensor reading failed");
+      return;
+    }
+
+    // CSV形式でシリアル出力
+    Serial.print("Temperature,Humidity\n"); // ヘッダー
+    Serial.print(temperature);
+    Serial.print(",");
+    Serial.println(humidity);
+
+  }
+
+}
+
 //
 void handleRoot() {
 
   // DHT センサーから温度と湿度を読み取る
   float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
+  float humidity    = dht.readHumidity();
 
   // センサーの読み取りエラーがないか確認
   if (isnan(temperature) || isnan(humidity)) {
@@ -122,34 +151,5 @@ void handleRoot() {
   String json;
   serializeJson(doc, json);  // JSONデータを文字列に変換
   server.send(200, "application/json", json);
-
-}
-
-// センサーのデータをシリアル出力する関数
-void outputSensorData() {
-
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= interval) {
-
-    previousMillis = currentMillis; // 現在の時刻を保存
-
-    // DHT センサーから温度と湿度を読み取る
-    float temperature = dht.readTemperature();
-    float humidity = dht.readHumidity();
-
-    // センサーの読み取りエラーがないか確認
-    if (isnan(temperature) || isnan(humidity)) {
-      Serial.println("Sensor reading failed");
-      return;
-    }
-
-    // CSV形式でシリアル出力
-    Serial.print("Temperature,Humidity\n"); // ヘッダー
-    Serial.print(temperature);
-    Serial.print(",");
-    Serial.println(humidity);
-
-  }
 
 }

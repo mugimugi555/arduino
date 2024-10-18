@@ -1,49 +1,66 @@
+//============================================================================
+// ライブラリのインストールとコンパイルコマンド
+//============================================================================
+// arduino-cli lib install "DHT sensor library"
+// arduino-cli lib install "ArduinoJson"
+// bash upload_esp01_web.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
+
+//============================================================================
+// ライブラリのインクルード
+//============================================================================
 #include <ESP8266WiFi.h>       // ESP8266用のWiFiライブラリをインクルード
 #include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
 #include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
-#include <DHT.h>
+#include <DHT.h>               // 温湿度センサーライブラリをインクルード
+#include <ArduinoJson.h>       // ArduinoJsonライブラリをインクルード
 
-#define DHTPIN 2      // DHTセンサーを接続するピン（GPIO2: ESP-01で使用可能なピン）
-#define DHTTYPE DHT11 // DHTセンサーの種類（DHT11 または DHT22）
-DHT dht(DHTPIN, DHTTYPE);
-
-// WiFi SSIDとパスワードをホスト名を指定
+//============================================================================
+// 定数と変数の定義
+//============================================================================
+// WiFi SSID、パスワード、ホスト名の設定
 const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
 const char* hostname = "HOSTNAME"  ; // ESP-01のホスト名
 
-ESP8266WebServer server(80);
+// DHTセンサーの設定
+#define DHTPIN 2      // DHTセンサーを接続するピン（GPIO2: ESP-01で使用可能なピン）
+#define DHTTYPE DHT11 // DHTセンサーの種類（DHT11 または DHT22）
+DHT dht(DHTPIN, DHTTYPE);
 
+// タイマーの変数
+unsigned long previousMillis = 0; // 前回のシリアル出力時刻
+const long interval = 5000;       // 5秒間隔
+
+ESP8266WebServer server(80); // Webサーバーのインスタンスを作成
+
+//============================================================================
+// 初期設定
+//============================================================================
 void setup() {
 
-  Serial.begin(115200);
+  Serial.begin(115200); // シリアル通信を開始
 
-  // DHTセンサーの初期化
-  dht.begin();
-
-  // WiFi接続の開始
-  connectToWiFi();
-
-  // Webサーバー設定
-  server.on("/", handleRoot);
-  server.begin();
-  Serial.println("HTTP server started");
-
-  // mDNS responderの初期化
-  if (MDNS.begin(hostname)) {
-    Serial.println("mDNS responder started");
-  }
+  dht.begin();          // DHTセンサーの初期化
+  connectToWiFi();      // WiFi接続の開始
+  setupWebServer();     // Webサーバーの設定
+  setupMDNS();          // mDNS responderの初期化
 
 }
 
+//============================================================================
+// メインループ
+//============================================================================
 void loop() {
 
-  server.handleClient();
-  MDNS.update();  // mDNSサービスの更新
+  server.handleClient();  // クライアントからの接続を処理
+  MDNS.update();          // mDNSサービスの更新
+  outputSensorData();     // 5秒ごとにセンサーのデータを出力
 
 }
 
-// WiFiに接続する関数
+//============================================================================
+// WiFi接続関数
+//============================================================================
 void connectToWiFi() {
 
   WiFi.hostname(hostname);
@@ -58,30 +75,40 @@ void connectToWiFi() {
   Serial.println("");
   Serial.print("Connected to ");
   Serial.println(ssid);
-
-  // ESP01のIPアドレスなどをシリアルモニタに表示
-  Serial.print("Hostname: http://");
+  Serial.println("===============================================");
+  Serial.println("              Network Details                  ");
+  Serial.println("===============================================");
+  Serial.print("Hostname     : http://");
   Serial.print(hostname);
   Serial.println(".local");
-
-  Serial.print("IP address: ");
+  Serial.print("IP address   : ");
   Serial.println(WiFi.localIP());
-
-  Serial.print("Subnet Mask: ");
+  Serial.print("Subnet Mask  : ");
   Serial.println(WiFi.subnetMask());
-
-  Serial.print("Gateway IP: ");
+  Serial.print("Gateway IP   : ");
   Serial.println(WiFi.gatewayIP());
-
-  Serial.print("DNS IP: ");
+  Serial.print("DNS IP       : ");
   Serial.println(WiFi.dnsIP());
-
-  Serial.print("MAC address: ");
+  Serial.print("MAC address  : ");
   Serial.println(WiFi.macAddress());
+  Serial.println("===============================================");
 
 }
 
-// ルートパスにアクセスした際の処理
+//============================================================================
+// Webサーバー設定
+//============================================================================
+void setupWebServer() {
+
+  server.on("/", handleRoot); // ルートパスにハンドラを設定
+  server.begin();             // Webサーバー開始
+  Serial.println("HTTP server started");
+
+}
+
+//============================================================================
+// ルートパス処理関数
+//============================================================================
 void handleRoot() {
 
   float temperature = dht.readTemperature();
@@ -94,12 +121,47 @@ void handleRoot() {
   }
 
   // JSON形式でデータを送信
-  String json = "{\"temperature\":";
-  json += String(temperature);
-  json += ",\"humidity\":";
-  json += String(humidity);
-  json += "}";
+  String json;
+  StaticJsonDocument<200> doc;  // 必要に応じてサイズを調整
+  doc["temperature"] = temperature;
+  doc["humidity"]    = humidity;
+  serializeJson(doc, json);
 
   server.send(200, "application/json", json);
+
+}
+
+//============================================================================
+// センサーのデータをシリアル出力する関数
+//============================================================================
+void outputSensorData() {
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+
+    previousMillis = currentMillis; // 現在の時刻を保存
+
+    // DHT センサーから温度と湿度を読み取る
+    float temperature = dht.readTemperature();
+    float humidity    = dht.readHumidity();
+
+    // センサーの読み取りエラーがないか確認
+    if (isnan(temperature) || isnan(humidity)) {
+      Serial.println("Sensor reading failed");
+      return;
+    }
+
+    // JSONオブジェクトの作成
+    StaticJsonDocument<200> jsonDoc;
+    jsonDoc["temperature"] = temperature;
+    jsonDoc["humidity"]    = humidity;
+
+    // JSON形式でシリアル出力
+    String json;
+    serializeJson(jsonDoc, json);
+    Serial.println(json);
+
+  }
 
 }
