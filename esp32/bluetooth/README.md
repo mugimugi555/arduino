@@ -24,8 +24,8 @@ arduino-cli lib install "Adafruit BME280 Library"
 arduino-cli lib install "Adafruit BusIO"
 arduino-cli lib install "Adafruit Unified Sensor"
 arduino-cli lib install "DHT sensor library"
-arduino-cli lib install "ESP32 BLE Keyboard"
-arduino-cli lib install "ESP32 BLE Mouse"
+#arduino-cli lib install "ESP32 BLE Keyboard"
+#arduino-cli lib install "ESP32 BLE Mouse"
 arduino-cli lib install "HX711 Arduino Library"
 ````
 # Compile and Upload command
