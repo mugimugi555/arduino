@@ -21,6 +21,7 @@ arduino-cli core list
 # Install Library
 ````bash
 arduino-cli lib install "Adafruit BME280 Library"
+arduino-cli lib install "LiquidCrystal I2C"
 arduino-cli lib install "Adafruit BusIO"
 arduino-cli lib install "Adafruit Unified Sensor"
 arduino-cli lib install "DHT sensor library"
