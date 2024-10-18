@@ -30,5 +30,5 @@ arduino-cli lib install "HX711 Arduino Library"
 ````
 # Compile and Upload command
 ````bash
-bash upload_esp32.sh bluetooth_auto_scroll/bluetooth_auto_scroll.ino
+bash upload_esp32_bluetooth.sh bluetooth_auto_scroller/bluetooth_auto_scroller.ino
 ````

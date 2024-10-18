@@ -27,5 +27,5 @@ arduino-cli lib install "DHT sensor library"
 ````
 # Compile and Upload command
 ````bash
-bash upload_esp8266.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
+bash upload_esp8266_web.sh web_dht11/web_dht11.ino wifissid wifipasswd hostname
 ````

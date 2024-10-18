@@ -10,6 +10,8 @@
 BLEMouse bleMouse;
 BLEKeyboard bleKeyboard;
 
+BleMouse bleMouse("esp32_mouse_keyboard");
+
 void setup() {
   Serial.begin(115200);
 
