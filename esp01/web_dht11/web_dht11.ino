@@ -117,6 +117,7 @@ void setupWebServer() {
 // ルートパス処理関数
 //----------------------------------------------------------------------------
 void handleRoot() {
+
   // センサーのデータをJSON形式で取得
   String jsonResponse = getSensorDataJson();
 
@@ -125,13 +126,16 @@ void handleRoot() {
     server.send(500, "text/plain", "Sensor reading failed");
   } else {
     server.send(200, "application/json", jsonResponse);
+    Serial.println(jsonResponse);
   }
+
 }
 
 //----------------------------------------------------------------------------
 // センサーのデータをJSON形式で取得する関数
 //----------------------------------------------------------------------------
 String getSensorDataJson() {
+
   // DHT センサーから温度と湿度を読み取る
   float temperature = dht.readTemperature();
   float humidity    = dht.readHumidity();
@@ -142,20 +146,24 @@ String getSensorDataJson() {
   }
 
   // JSON形式のレスポンスを作成
-  StaticJsonDocument<200> jsonDoc;      // JSONドキュメントを作成
-  jsonDoc["temperature"] = temperature; // 温度を設定
-  jsonDoc["humidity"]    = humidity;    // 湿度を設定
+  StaticJsonDocument<200> jsonDoc;         // JSONドキュメントを作成
+  jsonDoc["temperature"] = temperature;    // 温度を設定
+  jsonDoc["humidity"]    = humidity;       // 湿度を設定
+  jsonDoc["hostname"]    = hostname;       // ホスト名
+  jsonDoc["ipaddress"]   = WiFi.localIP().toString(); // IPアドレス
 
   // JSON形式の文字列を返す
   String jsonResponse;
   serializeJson(jsonDoc, jsonResponse); // JSONドキュメントを文字列にシリアル化
   return jsonResponse;
+
 }
 
 //----------------------------------------------------------------------------
 // センサーのデータをシリアル出力する関数
 //----------------------------------------------------------------------------
 void outputSensorData() {
+
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval) {
@@ -169,4 +177,5 @@ void outputSensorData() {
       Serial.println("Sensor reading failed");
     }
   }
+
 }

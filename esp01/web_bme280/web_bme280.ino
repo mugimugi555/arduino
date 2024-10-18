@@ -171,6 +171,8 @@ String getSensorDataJson() {
   jsonDoc["temperature"] = temperature; // 温度を設定
   jsonDoc["humidity"]    = humidity;    // 湿度を設定
   jsonDoc["pressure"]    = pressure;    // 気圧を設定
+  jsonDoc["hostname"]    = hostname;    // ホスト名
+  jsonDoc["ipaddress"]   = WiFi.localIP().toString(); // IPアドレス
 
   // JSON形式の文字列を返す
   String jsonResponse;

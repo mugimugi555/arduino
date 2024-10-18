@@ -174,7 +174,9 @@ void outputLEDStateJson() {
 
   // JSON形式で出力
   StaticJsonDocument<200> jsonDoc;
-  jsonDoc["ledState"] = ledState;
+  jsonDoc["ledState"]  = ledState; // LEDの状態
+  jsonDoc["hostname"]  = hostname; // ホスト名
+  jsonDoc["ipaddress"] = WiFi.localIP().toString(); // IPアドレス
 
   String json;
   serializeJson(jsonDoc, json);
