@@ -22,9 +22,9 @@
 //----------------------------------------------------------------------------
 
 // WiFi SSIDとパスワード、ホスト名を指定
-const char* ssid     = "WIFISSID";  // 自分のWi-Fi SSIDに置き換える
+const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
-const char* hostname = "HOSTNAME";  // ESP-01のホスト名
+const char* hostname = "HOSTNAME"  ; // ESP-01のホスト名
 
 // I2Cのピン設定
 #define I2C_SCL 0  // GPIO0 (D3ピン)

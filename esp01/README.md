@@ -26,7 +26,7 @@ arduino-cli lib install "Adafruit BMP085 Unified"
 arduino-cli lib install "Adafruit BusIO"
 arduino-cli lib install "Adafruit Unified Sensor"
 arduino-cli lib install "DHT sensor library"
-arduino-cli lib install ArduinoJson
+arduino-cli lib install "ArduinoJson"
 ````
 # Compile and Upload command
 ````bash
