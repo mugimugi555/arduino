@@ -235,9 +235,6 @@ float fetchPrice(String ticker) {
         // 値部分を切り出して浮動小数点数に変換
         String valueStr = line.substring(startIndex, endIndex);
         price = valueStr.toFloat();
-
-        //
-        client.stop();
         break;
 
       }
@@ -245,6 +242,8 @@ float fetchPrice(String ticker) {
     }
 
   }
+
+  client.stop();
 
   Serial.println(price);
 
