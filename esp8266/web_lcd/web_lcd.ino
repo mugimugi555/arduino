@@ -270,7 +270,7 @@ void fetchAndDisplayData() {
 }
 
 //
-void displayData(float nikkei, float nikkeiPrev) {
+void displayData(float nikkei, float exchange) {
 
   //
   lcd.clear();
@@ -281,7 +281,7 @@ void displayData(float nikkei, float nikkeiPrev) {
   //
   lcd.setCursor(0, 1);
   lcd.print("USDJPY:");
-  lcd.print(exchangeRate);
+  lcd.print(exchange);
 
 }
 
