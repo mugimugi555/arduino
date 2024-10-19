@@ -1,7 +1,6 @@
 //
 // arduino-cli lib install "LiquidCrystal I2C"
 // arduino-cli lib install "ArduinoJson"
-//
 
 //
 // [ESP8266] <---> [LCD]
@@ -36,14 +35,14 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 //----------------------------------------------------------------------------
 
 //
-const char* nikkeiUrl   = "https://query1.finance.yahoo.com/v8/finance/chart/^N225?interval=1d";
-const char* exchangeUrl = "https://query1.finance.yahoo.com/v8/finance/chart/USDJPY=X?interval=1d";
+const char* tickerNikkei   = "^N225";
+const char* tickerExchange = "USDJPY=X";
 
 ESP8266WebServer server(80);
 
 //
 unsigned long previousMillis = 0;
-const long interval = 1800000;
+const long interval = 1000 * 60 * 60; //１時間ごとに更新
 
 //
 float nikkeiAverage = 0;
@@ -101,11 +100,13 @@ void connectToWiFi() {
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
 
+  // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
+  // mDNSサービスの開始
   Serial.println("");
   if (MDNS.begin(hostname)) {
     Serial.println("mDNS responder started");
@@ -125,108 +126,128 @@ void connectToWiFi() {
   Serial.println(".local");
   Serial.print("IP address   : ");
   Serial.println(WiFi.localIP());
+  Serial.print("Subnet Mask  : ");
+  Serial.println(WiFi.subnetMask());
+  Serial.print("Gateway IP   : ");
+  Serial.println(WiFi.gatewayIP());
+  Serial.print("DNS IP       : ");
+  Serial.println(WiFi.dnsIP());
+  Serial.print("MAC address  : ");
+  Serial.println(WiFi.macAddress());
   Serial.println("===============================================");
 
 }
 
 //----------------------------------------------------------------------------
-// 日経平均株価の取得関数
+// 株価の取得関数
 //----------------------------------------------------------------------------
-float fetchPrice(String url) {
 
-  Serial.println("start fetch");
-  Serial.println(url);
+// URLエンコード関数
+String urlEncode(String str) {
 
-  //
-  HTTPClient http;
+  String encodedString = "";
 
-  //
-  WiFiClientSecure client;
-  client.setInsecure();
+  char c;
+  char buf[3];
+  for (int i = 0; i < str.length(); i++) {
+    c = str.charAt(i);
 
-  //
-  http.setTimeout(1000 * 10);
-  //http.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36");
-  http.addHeader("User-Agent", "ESP8266");
-  http.begin(client, url);  // WiFiClientとURLを渡す
-  http.setTimeout(1000 * 10);
+    // URLで使用できない文字をエンコードする
+    if (isalnum(c)) {
+      encodedString += c;  // 英数字はそのまま
+    } else {
+      sprintf(buf, "%%%02X", c);  // %XXの形式でエンコード
+      encodedString += buf;
+    }
 
-  //
-  //int httpCode = http.GET();
-  int httpCode;
-  int maxRetries = 3; // 最大リトライ回数
-  int retries = 0;
-
-  while (retries < maxRetries) {
-      httpCode = http.GET();
-      if (httpCode > 0) {
-          break;  // 正常に通信できたらループを抜ける
-      }
-      retries++;
-      delay(2000);  // 2秒待機して再試行
   }
+
+  return encodedString;
+
+}
+
+// api から取得
+float fetchPrice(String ticker) {
 
   float price = 0;
 
-  Serial.println(httpCode);
-  Serial.println(http.getString());
+  Serial.print("Start fetch ");
+  Serial.println(ticker);
 
-  if (httpCode > 0) {
-    String payload = http.getString();
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, payload);
-    price = doc["chart"]["result"][0]["indicators"]["quote"][0]["close"][0];
-    Serial.println(price);
-  } else {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Start fetch ");
+  lcd.setCursor(0, 1);
+  lcd.print(ticker);
 
-    /// HTTP client errors
-    /*
-    HTTPC_ERROR_CONNECTION_REFUSED  (-1)
-    HTTPC_ERROR_SEND_HEADER_FAILED  (-2)
-    HTTPC_ERROR_SEND_PAYLOAD_FAILED (-3)
-    HTTPC_ERROR_NOT_CONNECTED       (-4)
-    HTTPC_ERROR_CONNECTION_LOST     (-5)
-    HTTPC_ERROR_NO_STREAM           (-6)
-    HTTPC_ERROR_NO_HTTP_SERVER      (-7)
-    HTTPC_ERROR_TOO_LESS_RAM        (-8)
-    HTTPC_ERROR_ENCODING            (-9)
-    HTTPC_ERROR_STREAM_WRITE        (-10)
-    HTTPC_ERROR_READ_TIMEOUT        (-11)
-    */
+  WiFiClientSecure client;
+  client.setInsecure();  // セキュリティ証明書の検証を無効化
 
-    if (httpCode == -1) {
-      Serial.println("Error: Connection refused (-1)");
-    } else if (httpCode == -2) {
-      Serial.println("Error: Send header failed (-2)");
-    } else if (httpCode == -3) {
-      Serial.println("Error: Send payload failed (-3)");
-    } else if (httpCode == -4) {
-      Serial.println("Error: Not connected (-4)");
-    } else if (httpCode == -5) {
-      Serial.println("Error: Connection lost (-5)");
-    } else if (httpCode == -6) {
-      Serial.println("Error: No stream (-6)");
-    } else if (httpCode == -7) {
-      Serial.println("Error: No HTTP server (-7)");
-    } else if (httpCode == -8) {
-      Serial.println("Error: Too less RAM (-8)");
-    } else if (httpCode == -9) {
-      Serial.println("Error: Encoding error (-9)");
-    } else if (httpCode == -10) {
-      Serial.println("Error: Stream write error (-10)");
-    } else if (httpCode == -11) {
-      Serial.println("Error: Read timeout (-11)");
-    } else {
-      Serial.printf("Error: Unknown error (%d)\n", httpCode);
+  // サーバーに接続
+  if (!client.connect("query1.finance.yahoo.com", 443)) {
+    Serial.println("Connection failed");
+    return 0;
+  }
+
+  // リクエスト送信
+  //https://query1.finance.yahoo.com/v8/finance/chart/^N225?interval=1d
+  client.print("GET /v8/finance/chart/");
+  client.print( urlEncode( ticker ) );
+  client.println("?interval=1d HTTP/1.1");
+
+  client.println("Host: query1.finance.yahoo.com");
+  //client.println("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
+  client.println("Accept: application/json");
+  client.println("Accept-Language: ja;q=0.7");
+  client.println("Cache-Control: max-age=0");
+  client.println("Priority: u=0, i");
+  client.println("Sec-CH-UA: \"Chromium\";v=\"130\", \"Brave\";v=\"130\", \"Not?A_Brand\";v=\"99\"");
+  client.println("Sec-CH-UA-Mobile: ?0");
+  client.println("Sec-CH-UA-Platform: \"Linux\"");
+  client.println("Sec-Fetch-Dest: document");
+  client.println("Sec-Fetch-Mode: navigate");
+  client.println("Sec-Fetch-Site: none");
+  client.println("Sec-Fetch-User: ?1");
+  client.println("Sec-GPC: 1");
+  client.println("Upgrade-Insecure-Requests: 1");
+  client.println("User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
+  client.println();
+
+  // サーバーからのレスポンスを読み込む
+  String searchStr = "regularMarketPrice\":";
+  while (client.connected() || client.available()) {
+
+    // データが利用可能な場合は読み取る
+    if (client.available()) {
+
+      String line = client.readStringUntil('\n');  // 一行ずつ読み込む
+
+      // 探したい文字列の開始位置を取得
+      int startIndex = line.indexOf(searchStr);
+      if (startIndex != -1) {
+
+        // 開始位置に探した文字列の長さを加算して、値の開始位置を取得
+        startIndex += searchStr.length();
+
+        // カンマの位置を探して、値の終了位置を取得
+        int endIndex = line.indexOf(",", startIndex);
+
+        // 値部分を切り出して浮動小数点数に変換
+        String valueStr = line.substring(startIndex, endIndex);
+        price = valueStr.toFloat();
+
+        //
+        client.stop();
+        break;
+
+      }
+
     }
-
-    lcd.clear();
-    lcd.print("Error: ");
-    lcd.print(httpCode); // エラーコードをLCDに表示
 
   }
 
-  http.end();
+  Serial.println(price);
+
   return price;
 
 }
@@ -241,14 +262,8 @@ void fetchAndDisplayData() {
   if (WiFi.status() == WL_CONNECTED) {
 
     //
-    nikkeiAverage = fetchPrice(nikkeiUrl);
-
-    Serial.println("wait 10s");
-    delay(1000 * 10 );
-
-    //
-    exchangeRate  = fetchPrice(exchangeUrl);
-
+    nikkeiAverage = fetchPrice(tickerNikkei);
+    exchangeRate  = fetchPrice(tickerExchange);
     displayData(nikkeiAverage, exchangeRate);
 
   }
@@ -258,11 +273,13 @@ void fetchAndDisplayData() {
 //
 void displayData(float nikkei, float nikkeiPrev) {
 
+  //
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Nikkei:");
   lcd.print(nikkei);
 
+  //
   lcd.setCursor(0, 1);
   lcd.print("USDJPY:");
   lcd.print(exchangeRate);
@@ -276,6 +293,7 @@ void handleRoot() {
 
   String jsonResponse = getMarketDataJson();
 
+  //
   server.send(200, "application/json", jsonResponse);
   Serial.println(jsonResponse);
 
@@ -286,12 +304,14 @@ void handleRoot() {
 //----------------------------------------------------------------------------
 String getMarketDataJson() {
 
+  //
   StaticJsonDocument<200> jsonDoc;
   jsonDoc["nikkei"]    = nikkeiAverage;
   jsonDoc["usd_jpy"]   = exchangeRate;
   jsonDoc["hostname"]  = WiFi.hostname();
   jsonDoc["ipaddress"] = WiFi.localIP().toString();
 
+  //
   String jsonResponse;
   serializeJson(jsonDoc, jsonResponse);
 
