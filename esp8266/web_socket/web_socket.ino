@@ -107,7 +107,9 @@ void setup() {
 }
 
 void loop() {
+
   // 温度と湿度を取得
+  /*
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
 
@@ -115,9 +117,16 @@ void loop() {
   if (!isnan(temperature) && !isnan(humidity)) {
     notifyClients(temperature, humidity);
   }
+  */
+
+  // 簡易的に乱数を生成して送信
+  float randomTemperature = random(15, 30);  // 15〜30の間の乱数
+  float randomHumidity = random(40, 60);      // 40〜60の間の乱数
+  notifyClients(randomTemperature, randomHumidity);
 
   ws.cleanupClients();  // クライアントの管理
-  delay(2000);  // 2秒ごとにデータを更新
+  delay(500);  // 2秒ごとにデータを更新
+
 }
 
 
