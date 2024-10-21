@@ -1,8 +1,12 @@
-//arduino-cli lib install MCUFRIEND_kbv
-//arduino-cli lib install "Adafruit GFX Library"
-//arduino-cli lib install "Adafruit TFTLCD Library"
+// arduino-cli lib install "MCUFRIEND_kbv"
+// arduino-cli lib install "Adafruit GFX Library"
+// arduino-cli lib install "Adafruit TFTLCD Library"
+// arduino-cli lib install "SD"
 
 // https://stephenmonro.wordpress.com/2023/11/20/jaycar-arduino-2-8-uno-module/
+// edit “~/Arduino/libraries/MCUFRIEND_kbv/MCUFRIEND_kbv.cpp”
+// Make sure that the following (at a minimum) is uncommented:
+// #define SUPPORT_8347D //HX8347-D, HX8347-G, HX8347-I, HX8367-A +520 bytes, 0.27s
 
 #include <SPI.h>            // SPIライブラリをインクルード
 //#define USE_SDFAT
