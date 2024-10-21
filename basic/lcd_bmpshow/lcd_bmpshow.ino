@@ -4,12 +4,6 @@
 
 // https://stephenmonro.wordpress.com/2023/11/20/jaycar-arduino-2-8-uno-module/
 
-//arduino-cli lib install MCUFRIEND_kbv
-//arduino-cli lib install "Adafruit GFX Library"
-//arduino-cli lib install "Adafruit TFTLCD Library"
-
-// https://stephenmonro.wordpress.com/2023/11/20/jaycar-arduino-2-8-uno-module/
-
 #include <SPI.h>            // SPIライブラリをインクルード
 //#define USE_SDFAT
 #include <SD.h>             // ハードウェアピン用の公式SDライブラリを使用
@@ -117,7 +111,6 @@ uint32_t read32(File& f) {
   f.read((uint8_t*)&result, sizeof(result)); // 32ビットデータを読み込む
   return result;          // 結果を返す
 }
-
 uint8_t showBMP(char *nm, int x, int y) {
   File bmpFile;                  // BMPファイルを扱うためのFileオブジェクト
   int bmpWidth, bmpHeight;      // BMPの幅と高さ（ピクセル単位）
@@ -137,10 +130,12 @@ uint8_t showBMP(char *nm, int x, int y) {
   uint8_t ret;                  // 戻り値
 
   // 描画位置が画面外であればエラーを返す
-  if ((x >= tft.width()) || (y >= tft.height()))
-    return 1;                // 画面外
+  if ((x >= tft.width()) || (y >= tft.height())) {
+    return 1; // 画面外
+  }
 
-  bmpFile = SD.open(nm);       // BMPヘッダーの解析
+  // BMPファイルを開いてヘッダーを解析
+  bmpFile = SD.open(nm);
   bmpID = read16(bmpFile);     // BMPシグネチャを読み取る
   (void) read32(bmpFile);      // ファイルサイズを読み取って無視
   (void) read32(bmpFile);      // 作成者バイトを読み取って無視
@@ -154,143 +149,143 @@ uint8_t showBMP(char *nm, int x, int y) {
 
   // BMPファイルの検証
   if (bmpID != 0x4D42) {
-      ret = 2; // 不正なID
+    ret = 2; // 不正なID
   } else if (n != 1) {
-      ret = 3; // プレーンが多すぎる
+    ret = 3; // プレーンが多すぎる
   } else if (pos != 0 && pos != 3) {
-      ret = 4; // フォーマットが不正
+    ret = 4; // フォーマットが不正
   } else if (bmpDepth < 16 && bmpDepth > PALETTEDEPTH) {
-      ret = 5; // パレットのビット深度が不正
+    ret = 5; // パレットのビット深度が不正
   } else {
-      bool first = true;          // 初回フラグ
-      is565 = (pos == 3);        // 16ビットフォーマットかどうか
+    bool first = true;          // 初回フラグ
+    is565 = (pos == 3);        // 16ビットフォーマットかどうか
 
-      // BMP行は4バイト境界にパディングされる
-      rowSize = (bmpWidth * bmpDepth / 8 + 3) & ~3;
+    // BMP行は4バイト境界にパディングされる
+    rowSize = (bmpWidth * bmpDepth / 8 + 3) & ~3;
 
-      // 高さが負の場合、画像は上から下に保存されている
-      if (bmpHeight < 0) {
-          bmpHeight = -bmpHeight;
-          flip = false;          // フリップフラグをオフ
-      }
-
-      w = bmpWidth;              // 幅を設定
-      h = bmpHeight;             // 高さを設定
-
-      // 描画する領域を画面のサイズにクリップ
-      if ((x + w) >= tft.width()) {
-          w = tft.width() - x;   // 幅が画面外であれば調整
-      }
-      if ((y + h) >= tft.height()) {
-          h = tft.height() - y;  // 高さが画面外であれば調整
-      }
-
-      // パレットを使用する場合の処理
-      if (bmpDepth <= PALETTEDEPTH) {
-          // カラーパレットを読み取る
-          bmpFile.seek(bmpImageoffset - (4 << bmpDepth)); // カラーパレットの位置に移動
-          bitmask = 0xFF; // ビットマスクの初期化
-          if (bmpDepth < 8) {
-              bitmask >>= bmpDepth; // ビットマスクをシフト
-          }
-          bitshift = 8 - bmpDepth; // シフト量を計算
-          n = 1 << bmpDepth;        // パレットのエントリー数を計算
-          lcdbufsiz -= n;          // LCDバッファサイズを調整
-          palette = lcdbuffer + lcdbufsiz; // パレットの位置を設定
-
-          // パレットの読み込み
-          for (col = 0; col < n; col++) {
-              pos = read32(bmpFile); // パレットをマップ
-              palette[col] = ((pos & 0x0000F8) >> 3) |
-                              ((pos & 0x00FC00) >> 5) |
-                              ((pos & 0xF80000) >> 8);
-          }
-      }
-
-      // TFTアドレスウィンドウをクリップされた画像の範囲に設定
-      tft.setAddrWindow(x, y, x + w - 1, y + h - 1);
-
-      for (row = 0; row < h; row++) { // 各スキャンラインに対して...
-          // スキャンラインの開始位置にシーク
-          uint8_t r, g, b, *sdptr;     // RGBの色成分とポインタを初期化
-          int lcdidx, lcdleft;        // LCDバッファインデックスと残りのピクセル数
-
-          // BMPが下から上に保存されている場合（通常のBMP）
-          if (flip) {
-              pos = bmpImageoffset + (bmpHeight - 1 - row) * rowSize; // 逆順に位置を計算
-          } else {
-              pos = bmpImageoffset + row * rowSize; // 正順に位置を計算
-          }
-
-          // シークが必要か？
-          if (bmpFile.position() != pos) { // ファイルポジションが必要な場合
-              bmpFile.seek(pos); // 指定位置にシーク
-              buffidx = sizeof(sdbuffer); // バッファを強制的に再読み込み
-          }
-
-          for (col = 0; col < w; ) {  // 行のピクセル数に対して
-              lcdleft = w - col;      // 残りのピクセル数を計算
-              if (lcdleft > lcdbufsiz) {
-                  lcdleft = lcdbufsiz; // バッファサイズを超えないように調整
-              }
-
-              for (lcdidx = 0; lcdidx < lcdleft; lcdidx++) { // バッファ単位で処理
-                  uint16_t color; // ピクセルの色を格納する変数
-
-                  // ピクセルデータをさらに読み取る必要があるか？
-                  if (buffidx >= sizeof(sdbuffer)) { // 必要な場合
-                      bmpFile.read(sdbuffer, sizeof(sdbuffer)); // バッファに読み込む
-                      buffidx = 0; // インデックスを初期化
-                      r = 0; // 赤色の初期化
-                  }
-
-                  // BMPからTFTフォーマットにピクセルを変換
-                  switch (bmpDepth) {
-                      case 32:
-                      case 24:
-                          b = sdbuffer[buffidx++]; // 青色を取得
-                          g = sdbuffer[buffidx++]; // 緑色を取得
-                          r = sdbuffer[buffidx++]; // 赤色を取得
-                          if (bmpDepth == 32) {
-                              buffidx++; // アルファチャネルを無視
-                          }
-                          color = tft.color565(r, g, b); // RGBから565フォーマットに変換
-                          break;
-                      case 16:
-                          b = sdbuffer[buffidx++]; // 青色を取得
-                          r = sdbuffer[buffidx++]; // 赤色を取得
-                          if (is565) {
-                              color = (r << 8) | (b); // 565フォーマットの場合
-                          } else {
-                              color = (r << 9) | ((b & 0xE0) << 1) | (b & 0x1F); // それ以外のフォーマットの場合
-                          }
-                          break;
-                      case 1:
-                      case 4:
-                      case 8:
-                          if (r == 0) {
-                              b = sdbuffer[buffidx++], r = 8; // 初回読み込みの場合
-                          }
-                          color = palette[(b >> bitshift) & bitmask]; // パレットから色を取得
-                          r -= bmpDepth; // カウンターを減少
-                          b <<= bmpDepth; // シフト
-                          break;
-                  }
-
-                  lcdbuffer[lcdidx] = color; // LCDバッファに色を保存
-              }
-              // LCDにバッファを送信
-              tft.pushColors(lcdbuffer, lcdidx, first);
-              first = false; // 初回フラグをオフ
-              col += lcdidx; // 列のインデックスを更新
-          } // 列のループ終了
-      } // 行のループ終了
-
-      // フルスクリーンに戻す
-      tft.setAddrWindow(0, 0, tft.width() - 1, tft.height() - 1);
-      ret = 0; // 正常に描画された
-
+    // 高さが負の場合、画像は上から下に保存されている
+    if (bmpHeight < 0) {
+      bmpHeight = -bmpHeight;
+      flip = false;          // フリップフラグをオフ
     }
-    bmpFile.close();
-    return (ret);
+
+    w = bmpWidth;              // 幅を設定
+    h = bmpHeight;             // 高さを設定
+
+    // 描画する領域を画面のサイズにクリップ
+    if ((x + w) >= tft.width()) {
+      w = tft.width() - x;   // 幅が画面外であれば調整
+    }
+    if ((y + h) >= tft.height()) {
+      h = tft.height() - y;  // 高さが画面外であれば調整
+    }
+
+    // パレットを使用する場合の処理
+    if (bmpDepth <= PALETTEDEPTH) {
+      // カラーパレットを読み取る
+      bmpFile.seek(bmpImageoffset - (4 << bmpDepth)); // カラーパレットの位置に移動
+      bitmask = 0xFF; // ビットマスクの初期化
+      if (bmpDepth < 8) {
+        bitmask >>= bmpDepth; // ビットマスクをシフト
+      }
+      bitshift = 8 - bmpDepth; // シフト量を計算
+      n = 1 << bmpDepth;        // パレットのエントリー数を計算
+      lcdbufsiz -= n;          // LCDバッファサイズを調整
+      palette = lcdbuffer + lcdbufsiz; // パレットの位置を設定
+
+      // パレットの読み込み
+      for (col = 0; col < n; col++) {
+        pos = read32(bmpFile); // パレットをマップ
+        palette[col] = ((pos & 0x0000F8) >> 3) |
+                        ((pos & 0x00FC00) >> 5) |
+                        ((pos & 0xF80000) >> 8);
+      }
+    }
+
+    // TFTアドレスウィンドウをクリップされた画像の範囲に設定
+    tft.setAddrWindow(x, y, x + w - 1, y + h - 1);
+
+    for (row = 0; row < h; row++) { // 各スキャンラインに対して...
+      uint8_t r, g, b; // RGBの色成分を初期化
+      int lcdidx, lcdleft; // LCDバッファインデックスと残りのピクセル数
+
+      // BMPが下から上に保存されている場合（通常のBMP）
+      if (flip) {
+        pos = bmpImageoffset + (bmpHeight - 1 - row) * rowSize; // 逆順に位置を計算
+      } else {
+        pos = bmpImageoffset + row * rowSize; // 正順に位置を計算
+      }
+
+      // シークが必要か？
+      if (bmpFile.position() != pos) { // ファイルポジションが必要な場合
+        bmpFile.seek(pos); // 指定位置にシーク
+        buffidx = sizeof(sdbuffer); // バッファを強制的に再読み込み
+      }
+
+      for (col = 0; col < w; ) {  // 行のピクセル数に対して
+        lcdleft = w - col;      // 残りのピクセル数を計算
+        if (lcdleft > lcdbufsiz) {
+          lcdleft = lcdbufsiz; // バッファサイズを超えないように調整
+        }
+
+        for (lcdidx = 0; lcdidx < lcdleft; lcdidx++) { // バッファ単位で処理
+          uint16_t color; // ピクセルの色を格納する変数
+
+          // ピクセルデータをさらに読み取る必要があるか？
+          if (buffidx >= sizeof(sdbuffer)) { // 必要な場合
+            bmpFile.read(sdbuffer, sizeof(sdbuffer)); // バッファに読み込む
+            buffidx = 0; // インデックスを初期化
+            r = 0; // 赤色の初期化
+          }
+
+          // BMPからTFTフォーマットにピクセルを変換
+          switch (bmpDepth) {
+            case 32:
+            case 24:
+              b = sdbuffer[buffidx++]; // 青色を取得
+              g = sdbuffer[buffidx++]; // 緑色を取得
+              r = sdbuffer[buffidx++]; // 赤色を取得
+              if (bmpDepth == 32) {
+                buffidx++; // アルファチャネルを無視
+              }
+              color = tft.color565(r, g, b); // RGBから565フォーマットに変換
+              break;
+            case 16:
+              b = sdbuffer[buffidx++]; // 青色を取得
+              r = sdbuffer[buffidx++]; // 赤色を取得
+              if (is565) {
+                color = (r << 8) | (b); // 565フォーマットの場合
+              } else {
+                color = (r << 9) | ((b & 0xE0) << 1) | (b & 0x1F); // 444フォーマットの場合
+              }
+              break;
+            case 1:
+            case 4:
+            case 8:
+              if (r == 0) {
+                uint8_t b = sdbuffer[buffidx++]; // パレットインデックスを取得
+                r = 8; // シフト量を初期化
+              }
+              color = palette[(b >> bitshift) & bitmask]; // パレットから色を取得
+              r -= bmpDepth; // シフト量をデクリメント
+              b <<= bmpDepth; // バッファインデックスを更新
+              break;
+          }
+
+          lcdbuffer[lcdidx] = color; // LCDバッファに色を格納
+        }
+
+        tft.pushColors(lcdbuffer, lcdidx, first); // バッファをTFTに描画
+        first = false; // 初回フラグをオフ
+        col += lcdidx; // カラムインデックスを更新
+      }
+    }
+
+    // 描画完了後に画面全体をクリア
+    tft.setAddrWindow(0, 0, tft.width() - 1, tft.height() - 1);
+    ret = 0; // 成功を示す戻り値
+  }
+
+  bmpFile.close(); // ファイルを閉じる
+  return (ret); // 結果を返す
 }
