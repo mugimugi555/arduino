@@ -30,7 +30,7 @@ sed -e "s/WIFISSID/$WIFI_SSID/" \
     "$SKETCH_PATH" > "$TEMP_SKETCH"
 
 # 作成した一時スケッチファイルの内容を表示
-cat "$TEMP_SKETCH"
+#cat "$TEMP_SKETCH"
 echo "replace success => $TEMP_SKETCH"
 echo "now compiling..."
 
@@ -44,8 +44,8 @@ if [ $? -eq 0 ]; then
     if [ $? -eq 0 ]; then
         # アップロード成功時に/dev/ttyUSB0の値を出力
         echo "Upload successful!"
-        stty -F /dev/ttyUSB0 $SERIAL_BAND
-        cat /dev/ttyUSB0
+        #stty -F /dev/ttyUSB0 $SERIAL_BAND
+        #cat /dev/ttyUSB0
         #screen /dev/ttyUSB0 $SERIAL_BAND
     else
         echo "Upload failed"
