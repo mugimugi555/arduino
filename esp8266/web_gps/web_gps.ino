@@ -4,6 +4,8 @@
 #include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 
+// e108 gn02d
+
 const char* ssid = "your_SSID";
 const char* password = "your_PASSWORD";
 WiFiServer server(80);
