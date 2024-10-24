@@ -8,8 +8,8 @@ const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き�
 const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名
 
 // https://developers.line.biz/console/
-const char* channelAccessToken = "CHANNELACCESSTOKEN"; // LINE Develop -> プロバイダーチャネル -> Messaging API設定 -> チャネルアクセストークン（長期）
 const char* providerUserId     = "PROVIERUSERID"     ; // LINE Develop -> プロバイダーチャネル -> チャネル基本設定 -> ユーザーID
+const char* channelAccessToken = "CHANNELACCESSTOKEN"; // LINE Develop -> プロバイダーチャネル -> Messaging API設定 -> チャネルアクセストークン（長期）
 
 // PIRセンサー         ESP8266
 // VCC  <---------->  5V (または3.3V)
