@@ -109,22 +109,24 @@ void connectToWiFi() {
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
 
+  Serial.print("Connecting to ");
+  Serial.print(ssid);
+
   // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
+  Serial.println("Connected");
 
   // mDNSサービスの開始
-  Serial.println("");
   if (MDNS.begin(hostname)) {
     Serial.println("mDNS responder started");
   } else {
     Serial.println("Error setting up mDNS responder!");
   }
 
-  Serial.print("Connected to ");
-  Serial.println(ssid);
+  Serial.println("");
   Serial.println("===============================================");
   Serial.println("              Network Details                  ");
   Serial.println("===============================================");
@@ -143,7 +145,7 @@ void connectToWiFi() {
   Serial.println(WiFi.dnsIP());
   Serial.print("MAC address  : ");
   Serial.println(WiFi.macAddress());
-  Serial.println("===============================================");
+  Serial.println("-----------------------------------------------");
   Serial.println("");
 
 }
@@ -182,7 +184,7 @@ String createJson() {
 // タスク処理
 //----------------------------------------------------------------------------
 
-// 時間関連の処理を行う関数
+// 定期時間ごとに実行する関数
 void handleTask(){
 
   static unsigned long lastMillis = 0;
