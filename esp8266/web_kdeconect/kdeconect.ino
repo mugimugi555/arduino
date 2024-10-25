@@ -45,6 +45,12 @@ void loop() {
     kde.sendMessage("Your KDE Connect Command"); // 登録されたコマンドを送信
   }
 
+  // KDE Connectから通知を受信したときの処理
+  if (kde.hasNotification()) {
+    String notification = kde.getLastNotification(); // 最後の通知を取得
+    Serial.println(notification);
+  }
+
   delay(10000); // 10秒ごとに測定
 }
 
