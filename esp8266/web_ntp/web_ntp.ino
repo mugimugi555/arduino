@@ -70,21 +70,8 @@ void setup() {
 //----------------------------------------------------------------------------
 void loop() {
 
-  static unsigned long lastMillis = 0;
-  unsigned long currentMillis = millis();
-
-  // 1秒ごとに情報を表示
-  if (currentMillis - lastMillis >= 1000) {
-    lastMillis = currentMillis;
-    Serial.println(createJson());
-  }
-
-  // 1時間に1回NTPで同期
-  if (currentMillis % 3600000 == 0) {
-    ntpClient.update();
-    setTime(ntpClient.getEpochTime());
-    Serial.println("NTP time synced");
-  }
+  // タスク処理
+  handleTask();
 
   // クライアントリクエストを処理
   server.handleClient();
@@ -192,8 +179,31 @@ String createJson() {
 }
 
 //----------------------------------------------------------------------------
-// DATETIME形式のStringを返す関数
+// タスク処理
 //----------------------------------------------------------------------------
+
+// 時間関連の処理を行う関数
+void handleTask(){
+
+  static unsigned long lastMillis = 0;
+  unsigned long currentMillis = millis();
+
+  // 1秒ごとに情報を表示
+  if (currentMillis - lastMillis >= 1000) {
+    lastMillis = currentMillis;
+    Serial.println(createJson());
+  }
+
+  // 1時間に1回NTPで同期
+  if (currentMillis % 3600000 == 0) {
+    ntpClient.update();
+    setTime(ntpClient.getEpochTime());
+    Serial.println("NTP time synced");
+  }
+
+}
+
+// DATETIME形式のStringを返す関数
 String formatDatetime() {
 
   String datetime = String(year()) + "-" +
