@@ -1,18 +1,36 @@
-// arduino-cli lib install "NTPClient"
+/*
+
+# ESP8266ボードのインストール
+arduino-cli config add-board manager.url http://arduino.esp8266.com/stable/package_esp8266com_index.json
+arduino-cli core install esp8266:esp8266
+
+# このプログラムで必要なライブラリのインストール
+arduino-cli lib install "ESP8266WiFi"       # ESP8266ボード用のWiFi機能を提供するライブラリ
+arduino-cli lib install "ESP8266WebServer"  # ESP8266上でWebサーバー機能を実装するためのライブラリ
+arduino-cli lib install "ESP8266mDNS"       # mDNS（マルチキャストDNS）を使用して、ESP8266デバイスをネットワークで簡単に見つけられるようにするライブラリ
+arduino-cli lib install "WiFiClient"        # WiFi経由でのTCP/IP通信を行うためのクライアントライブラリ
+arduino-cli lib install "WiFiUdp"           # UDP通信を使用するためのWiFiライブラリ
+arduino-cli lib install "NTPClient"         # NTP（Network Time Protocol）を使用して、正確な時刻を取得するためのライブラリ
+arduino-cli lib install "ArduinoJson"       # JSON形式のデータを簡単に作成、解析するためのライブラリ
+
+# コンパイルとアップロード例
+bash upload_esp8266_web.sh web_ntp/web_ntp.ino wifissid wifipasswd hostname
+
+*/
 
 //
-#include <ESP8266WiFi.h>       // ESP8266用のWiFiライブラリをインクルード
-#include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
-#include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
-#include <WiFiClient.h>        // WiFiクライアント用ライブラリをインクルード
-#include <WiFiUdp.h>
-#include <NTPClient.h>
-#include <ArduinoJson.h>
+#include <ESP8266WiFi.h>       // ESP8266用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
+#include <ESP8266WebServer.h>  // ESP8266デバイスでWebサーバーを構築するためのライブラリ。HTTPリクエストの処理やWebページの提供が可能です。
+#include <ESP8266mDNS.h>       // mDNS（マルチキャストDNS）を使用するためのライブラリ。デバイスをネットワークで簡単に発見できるようにします。
+#include <WiFiClient.h>        // WiFi経由でTCP/IP通信を行うためのクライアントライブラリ。サーバーと通信する際に利用します。
+#include <WiFiUdp.h>           // UDP通信を行うためのWiFiライブラリ。簡単にデータの送受信が可能です。
+#include <NTPClient.h>         // NTP（Network Time Protocol）サーバーから時刻情報を取得するためのライブラリ。正確な時刻を得るのに便利です。
+#include <ArduinoJson.h>       // JSON形式のデータを作成・解析するためのライブラリ。API通信やデータの保存に役立ちます。
 
 // WiFi SSIDとパスワードをホスト名を指定
 const char* ssid     = "WIFISSID";   // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
-const char* hostname = "HOSTNAME";   // ESP8266のホスト名
+const char* hostname = "HOSTNAME";   // ESP8266のホスト名 http://HOSTNAME.local/ でアクセスできるようになります。
 
 // NTPクライアント設定
 WiFiUDP ntpUDP;
@@ -21,15 +39,12 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 9 * 3600, 60000);  // JST (UTC+9)
 // Webサーバー設定
 ESP8266WebServer server(80);
 
-// LEDピンとセンサー変数を定義
-const int led = 2; // GPIOピン番号に置き換え
-int sensorValue = 0;
-
-//
+//----------------------------------------------------------------------------
+// 初期実行
+//----------------------------------------------------------------------------
 void setup() {
 
   Serial.begin(115200);
-  pinMode(led, OUTPUT);
 
   //
   showSplash();
@@ -49,7 +64,9 @@ void setup() {
 
 }
 
-//
+//----------------------------------------------------------------------------
+// ループ処理
+//----------------------------------------------------------------------------
 void loop() {
 
   static unsigned long lastMillis = 0;
@@ -75,7 +92,9 @@ void loop() {
 
 }
 
-//
+//----------------------------------------------------------------------------
+// スプラッシュ画面の表示
+//----------------------------------------------------------------------------
 void showSplash(){
 
   // figlet ESP8266
@@ -140,10 +159,12 @@ void connectToWiFi() {
 
 }
 
+//----------------------------------------------------------------------------
+// Webサーバー系
+//----------------------------------------------------------------------------
+
 // ルートURLにアクセスした際の処理
 void handleRoot() {
-
-  digitalWrite(led, HIGH); // LEDをONにする
 
   // JSONオブジェクトを作成
   createJson();
@@ -151,8 +172,6 @@ void handleRoot() {
   // HTTPレスポンスを送信
   String jsonResponse = createJson();
   server.send(200, "application/json", jsonResponse);
-
-  digitalWrite(led, LOW); // LEDをOFFにする
 
 }
 
@@ -177,7 +196,11 @@ String createJson() {
 
 }
 
-// 日付と時間をフォーマットする関数
+//----------------------------------------------------------------------------
+// 日付関係
+//----------------------------------------------------------------------------
+
+//日付と時間をフォーマットする関数
 String formatDateTime(unsigned long epochTime) {
 
   int year = 1970;
