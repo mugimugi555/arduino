@@ -156,7 +156,7 @@ void handleRoot() {
 
 }
 
-// GPSデータをJSON形式で生成
+// 取得されるデータをJSON形式で生成
 String createJson() {
 
   // NTPクライアントから現在のエポック時間を取得
