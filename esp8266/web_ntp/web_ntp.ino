@@ -70,6 +70,9 @@ void loop() {
   // クライアントリクエストを処理
   server.handleClient();
 
+  // ホスト名の更新
+  MDNS.update();
+
 }
 
 //
