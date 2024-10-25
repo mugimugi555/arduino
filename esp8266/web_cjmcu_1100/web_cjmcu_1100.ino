@@ -62,12 +62,12 @@ void connectToWiFi() {
   Serial.print("Connected to ");
   Serial.println(ssid);
 
-  // Display the ESP32's hostname
+  // Display the esp8266's hostname
   Serial.print("Hostname: http://");
   Serial.print(WiFi.getHostname());
   Serial.println(".local");
 
-  // Display the ESP32's IP address
+  // Display the esp8266's IP address
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
@@ -83,12 +83,12 @@ void connectToWiFi() {
   Serial.print("DNS IP: ");
   Serial.println(WiFi.dnsIP());
 
-  // Display the ESP32's MAC address
+  // Display the esp8266's MAC address
   Serial.print("MAC address: ");
   Serial.println(WiFi.macAddress());
 
   // Start mDNS responder
-  if (MDNS.begin("esp32")) {
+  if (MDNS.begin("esp8266")) {
     Serial.println("MDNS responder started");
   }
 
