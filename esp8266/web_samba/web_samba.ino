@@ -2,6 +2,7 @@
 #include <SD.h>
 #include <SPI.h>
 #include <ESP8266WebServer.h>
+#include <Samba.h>
 
 const char* ssid = "YOUR_SSID";          // WiFi SSID
 const char* password = "YOUR_PASSWORD";  // WiFi Password
@@ -23,12 +24,21 @@ void setup() {
   }
   Serial.println("SD card initialized.");
 
+  // Sambaの初期化と設定
+  Samba.begin("ESP8266", "guest"); // Samba設定（ホスト名、ゲストユーザー）
+
   server.on("/", handleRoot); // ルートURLへのリクエストを処理
   server.on("/download", handleDownload); // ダウンロードリクエストを処理
   server.on("/delete", handleDelete); // 削除リクエストを処理
   server.begin();
   Serial.println("HTTP server started.");
 }
+
+void loop() {
+  server.handleClient(); // クライアントからのリクエストを処理
+  Samba.handleClient(); // Sambaクライアントからのリクエストを処理
+}
+
 void handleRoot() {
   String response = "<html><body><h1>File List</h1><ul>";
 
@@ -38,6 +48,7 @@ void handleRoot() {
 
   server.send(200, "text/html", response); // HTMLレスポンスを送信
 }
+
 void listFiles(File dir, String &response, String path) {
   while (File file = dir.openNextFile()) {
     response += "<li>";
@@ -56,6 +67,7 @@ void listFiles(File dir, String &response, String path) {
   }
   dir.close();
 }
+
 void handleDownload() {
   if (server.hasArg("file")) {
     String filePath = server.arg("file");
@@ -70,6 +82,16 @@ void handleDownload() {
     server.send(400, "text/plain", "Bad Request");
   }
 }
-void loop() {
-  server.handleClient(); // クライアントからのリクエストを処理
+
+void handleDelete() {
+  if (server.hasArg("file")) {
+    String filePath = server.arg("file");
+    if (SD.remove(filePath)) {
+      server.send(200, "text/plain", "File deleted successfully");
+    } else {
+      server.send(404, "text/plain", "File not found");
+    }
+  } else {
+    server.send(400, "text/plain", "Bad Request");
+  }
 }
