@@ -1,4 +1,8 @@
 /*
+arduino-cli lib install "ELMduino"
+*/
+
+/*
 PIDコード	データ内容	単位
 010C	エンジン回転数	RPM
 010D	車速	km/h
