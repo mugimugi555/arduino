@@ -5,8 +5,6 @@ EPS32 "4MB" not working :-b
 
 */
 
-#include <WiFi.h>
-#include <WebServer.h>
 #include <LittleFS.h>
 #include <ELMduino.h>
 #include <BluetoothSerial.h>
@@ -16,19 +14,8 @@ BluetoothSerial SerialBT;
 ELM327 myELM327;
 TinyGPSPlus gps;
 
-// Wi-Fiの設定
-const char* ssid = "Your_SSID";  // Wi-FiのSSID
-const char* password = "Your_PASSWORD";  // Wi-Fiのパスワード
-
 // CSVデータを保存するファイルパス
 const char* csvFilePath = "/obd_data.csv";
-
-unsigned long lastWiFiCheck = 0;  // 最後にWi-Fiをチェックした時刻
-const unsigned long wifiCheckInterval = 60000; // Wi-Fiチェックの間隔（1分）
-
-WebServer server(80);
-
-String datetime;
 
 void setup() {
   Serial.begin(115200);
@@ -55,23 +42,23 @@ void setup() {
 }
 
 void loop() {
-
-  // 時間をチェックしてWi-Fi接続を確認
-  unsigned long currentMillis = millis();
-  if (currentMillis - lastWiFiCheck >= wifiCheckInterval) {
-    connectToWiFi();
-    lastWiFiCheck = currentMillis;  // 最後のチェック時刻を更新
-  }
-
   // GPSデータの更新
   while (Serial.available()) {
     gps.encode(Serial.read());
   }
 
   // GPS情報の取得
+  String datetime;
+  float latitude = 0.0;
+  float longitude = 0.0;
+  float altitude = 0.0;
+
   if (gps.location.isUpdated()) {
-    datetime  = String(gps.date.year())        + "-" + String(gps.date.month())  + "-" + String(gps.date.day()) + " " +
-                String(gps.time.hour()) + ":" + String(gps.time.minute()) + ":" + String(gps.time.second());
+    latitude = gps.location.lat();
+    longitude = gps.location.lng();
+    altitude = gps.altitude.meters();
+    datetime = String(gps.date.year()) + "-" + String(gps.date.month()) + "-" + String(gps.date.day()) + " " +
+               String(gps.time.hour()) + ":" + String(gps.time.minute()) + ":" + String(gps.time.second());
   }
 
   // OBD-IIデータを取得しCSVに追加
@@ -87,36 +74,21 @@ void loop() {
     getOBDData("0146"), // Ambient Temp
     getOBDData("015E"), // Fuel Rate
     getOBDData("010B"),  // Fuel Pressure
-    gps.location.lat(),
-    gps.location.lng(),
-    gps.altitude.meters(),
+    latitude,
+    longitude,
+    altitude,
     datetime
   );
 
-  // Webサーバーのリクエストを処理
-  server.handleClient();
+  // 特定のコマンドを受信した場合にCSVファイルを送信
+  if (Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+    if (command.equals("SEND_FILE")) {
+      sendFile(csvFilePath);
+    }
+  }
+
   delay(500); // 次のイテレーションまで0.5秒待つ
-
-}
-
-// Wi-Fiに接続する関数
-void connectToWiFi() {
-  WiFi.begin(ssid, password);
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 10) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("Wi-Fiに接続しました。");
-    server.on("/", HTTP_GET, handleRoot);
-    server.on("/download", HTTP_GET, handleDownload);
-    server.begin();
-  } else {
-    Serial.println("Wi-Fiへの接続に失敗しました。");
-  }
 }
 
 // OBD-IIデータを特定のPIDから取得する関数
@@ -133,7 +105,7 @@ String getOBDData(String pid) {
 void initializeCSV() {
   File file = LittleFS.open(csvFilePath, FILE_WRITE);
   if (file) {
-    //file.println("Timestamp,RPM,Speed,EngineLoad,CoolantTemp,IntakeTemp,ThrottlePosition,FuelLevel,EngineTime,AmbientTemp,FuelRate,FuelPressure,Latitude,Longitude,Altitude,Datetime");
+    file.println("Timestamp,RPM,Speed,EngineLoad,CoolantTemp,IntakeTemp,ThrottlePosition,FuelLevel,EngineTime,AmbientTemp,FuelRate,FuelPressure,Latitude,Longitude,Altitude,Datetime"); // ヘッダーの書き込み
     file.close();
   }
 }
@@ -142,33 +114,35 @@ void initializeCSV() {
 void appendCSV(String rpm, String speed, String engineLoad, String coolantTemp, String intakeTemp, String throttlePosition, String fuelLevel, String engineTime, String ambientTemp, String fuelRate, String fuelPressure, float latitude, float longitude, float altitude, String datetime) {
   File file = LittleFS.open(csvFilePath, FILE_APPEND);
   if (file) {
-    String data = String(millis())   + ","
-                  + rpm              + ","
-                  + speed            + ","
-                  + engineLoad       + ","
-                  + coolantTemp      + ","
-                  + intakeTemp       + ","
+    String data = String(millis()) + ","
+                  + rpm + ","
+                  + speed + ","
+                  + engineLoad + ","
+                  + coolantTemp + ","
+                  + intakeTemp + ","
                   + throttlePosition + ","
-                  + fuelLevel        + ","
-                  + engineTime       + ","
-                  + ambientTemp      + ","
-                  + fuelRate         + ","
-                  + latitude         + ","
-                  + longitude        + ","
-                  + altitude         + ","
+                  + fuelLevel + ","
+                  + engineTime + ","
+                  + ambientTemp + ","
+                  + fuelRate + ","
+                  + latitude + ","
+                  + longitude + ","
+                  + altitude + ","
                   + datetime;
     file.println(data); // データの追加
     file.close();
   }
 }
 
-// ダウンロードエンドポイントを処理し、CSVファイルを提供する関数
-void handleDownload() {
-  File file = LittleFS.open(csvFilePath, FILE_READ);
-  if (!file) {
-    server.send(500, "text/plain", "ファイルを開けませんでした");
-    return;
+// ファイルをシリアル通信で送信する関数
+void sendFile(const char* path) {
+  File file = LittleFS.open(path, FILE_READ);
+  if (file) {
+    while (file.available()) {
+      Serial.write(file.read());
+    }
+    file.close();
+  } else {
+    Serial.println("ファイルを開けませんでした");
   }
-  server.streamFile(file, "text/csv"); // CSVファイルをストリーム配信
-  file.close();
 }
