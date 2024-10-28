@@ -1,8 +1,5 @@
 /*
 arduino-cli lib install "ELMduino"
-
-EPS32 "4MB" not working :-b
-
 */
 
 #include <LittleFS.h>
@@ -42,6 +39,7 @@ void setup() {
 }
 
 void loop() {
+
   // GPSデータの更新
   while (Serial.available()) {
     gps.encode(Serial.read());
