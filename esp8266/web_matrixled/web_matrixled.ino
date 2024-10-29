@@ -11,11 +11,11 @@ Max72xxPanel matrix = Max72xxPanel(pinCS, 4, 1);
 
 AsyncWebServer server(80);
 
-String message = ""; // 表示するメッセージ
-int scrollPosition = 0; // スクロール位置
+String message = "";      // 表示するメッセージ
+int scrollPosition = 0;   // スクロール位置
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(115200);   // シリアル通信の初期化
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -23,7 +23,7 @@ void setup() {
   }
   Serial.println("WiFiに接続しました");
 
-  // MAX7219設定
+  // MAX7219の初期設定
   matrix.setIntensity(3); // LEDの明るさ
   matrix.setRotation(0, 1); // LEDマトリックスの回転設定（必要に応じて調整）
 
@@ -38,6 +38,7 @@ void setup() {
     request->send(200, "text/html", html);
   });
 
+  // Webからのメッセージ受け取り処理
   server.on("/message", HTTP_POST, [](AsyncWebServerRequest *request) {
     if (request->hasParam("text", true)) {
       message = request->getParam("text", true)->value();
@@ -53,6 +54,12 @@ void setup() {
 }
 
 void loop() {
+  // シリアル通信からのメッセージ受け取り処理
+  if (Serial.available() > 0) {
+    message = Serial.readStringUntil('\n');  // シリアルからのメッセージを受信
+    scrollPosition = matrix.width();         // スクロール位置を初期化
+  }
+
   // スクロール処理
   matrix.fillScreen(LOW);
   matrix.setCursor(scrollPosition, 0);
