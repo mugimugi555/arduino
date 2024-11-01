@@ -1,17 +1,17 @@
-#include <ESP8266WiFi.h>
+#include <WiFi.h>                               // ESP32用のWi-Fiライブラリ
 #include <DHT.h>
 #include <KDEConnect.h>
 
-const char* ssid = "your_SSID";            // Wi-FiのSSID
-const char* password = "your_PASSWORD";     // Wi-Fiのパスワード
+const char* ssid = "your_SSID";                // Wi-FiのSSID
+const char* password = "your_PASSWORD";         // Wi-Fiのパスワード
 
-#define DHTPIN 2                              // DHTセンサーのデータピン
-#define DHTTYPE DHT11                         // DHT11センサーを使用
+#define DHTPIN 2                                // DHTセンサーのデータピン
+#define DHTTYPE DHT11                           // DHT11センサーを使用
 
 DHT dht(DHTPIN, DHTTYPE);
 KDEConnect kde;
 
-const float discomfortIndexThreshold = 80.0; // 不快指数の閾値（例: 80以上でコマンド送信）
+const float discomfortIndexThreshold = 80.0;    // 不快指数の閾値（例: 80以上でコマンド送信）
 
 void setup() {
   Serial.begin(115200);
