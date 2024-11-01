@@ -190,18 +190,16 @@ float fetchPrice(String ticker) {
   }
 
   // リクエスト送信
-  //https://query1.finance.yahoo.com/v8/finance/chart/^N225?interval=1d
+  // https://query1.finance.yahoo.com/v8/finance/chart/^N225?interval=1d
   client.print("GET /v8/finance/chart/");
   client.print( urlEncode( ticker ) );
   client.println("?interval=1d HTTP/1.1");
 
   client.println("Host: query1.finance.yahoo.com");
-  //client.println("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
   client.println("Accept: application/json");
   client.println("Accept-Language: ja;q=0.7");
   client.println("Cache-Control: max-age=0");
   client.println("Priority: u=0, i");
-  client.println("Sec-CH-UA: \"Chromium\";v=\"130\", \"Brave\";v=\"130\", \"Not?A_Brand\";v=\"99\"");
   client.println("Sec-CH-UA-Mobile: ?0");
   client.println("Sec-CH-UA-Platform: \"Linux\"");
   client.println("Sec-Fetch-Dest: document");
