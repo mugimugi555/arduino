@@ -124,12 +124,12 @@ const char htmlPage[] PROGMEM = R"rawliteral(
         return {
           sensorData: {
             temperature: null,
-            humidity: null,
-            heatIndex: null,
-            status: null,
-            message: null,
-            hostname: null,
-            ipaddress: null
+            humidity:    null,
+            heatIndex:   null,
+            status:      null,
+            message:     null,
+            hostname:    null,
+            ipaddress:   null
           },
           logs: [] // ログ用の配列を追加
         };
@@ -158,7 +158,6 @@ const char htmlPage[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
-
 
 //----------------------------------------------------------------------------
 // 初期実行
