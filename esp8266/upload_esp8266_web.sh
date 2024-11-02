@@ -42,11 +42,15 @@ if [ $? -eq 0 ]; then
     arduino-cli upload -p /dev/ttyUSB0 --fqbn "$BOARD_NAME" "$TEMP_SKETCH"
 
     if [ $? -eq 0 ]; then
+
         # アップロード成功時に/dev/ttyUSB0の値を出力
         echo "Upload successful!"
+        #picocom -b 115200 /dev/ttyUSB0
+
         #stty -F /dev/ttyUSB0 $SERIAL_BAND
         #cat /dev/ttyUSB0
         #screen /dev/ttyUSB0 $SERIAL_BAND
+
     else
         echo "Upload failed"
     fi

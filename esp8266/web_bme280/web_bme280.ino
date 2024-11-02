@@ -47,13 +47,26 @@ void setup() {
 
   Serial.begin(115200);
   
-  //
+  // 起動画面の表示
   showSplash();
 
   // BME280センサーの初期化
   if (!bme.begin(0x76)) {
-    Serial.println("BME280センサーが見つかりません。接続を確認してください。");
+
+    // JSONオブジェクトの作成
+    StaticJsonDocument<200> doc;
+    doc["status"]  = 0; // エラー状態を設定
+    doc["message"] = "BME280センサーが見つかりません。接続を確認してください。"; // エラーメッセージを設定
+
+    // JSONデータを文字列にシリアライズ
+    String json;
+    serializeJson(doc, json);
+
+    // シリアルモニターにJSON形式で出力
+    Serial.println(json);
+
     while (1);
+
   }
 
   // WiFi接続
@@ -90,7 +103,7 @@ void loop() {
 }
 
 //----------------------------------------------------------------------------
-// スプラッシュ画面の表示
+// 起動画面の表示
 //----------------------------------------------------------------------------
 void showSplash(){
 
@@ -104,6 +117,40 @@ void showSplash(){
   Serial.println("  | |___ ___) |  __/ (_) / __/| (_) | (_) |");
   Serial.println("  |_____|____/|_|   \\___/_____|\\___/ \\___/ ");
   Serial.println("");
+  Serial.println("===============================================");
+
+  // ボード名を表示
+  Serial.print("Board         : ");
+  Serial.println(ARDUINO_BOARD);
+
+  // CPUの周波数を表示
+  Serial.print("CPU Frequency : ");
+  Serial.print(ESP.getCpuFreqMHz());
+  Serial.println(" MHz");
+
+  // フラッシュサイズを表示
+  Serial.print("Flash Size    : ");
+  Serial.print(ESP.getFlashChipSize() / 1024);
+  Serial.println(" KB");
+
+  // 空きヒープメモリを表示
+  Serial.print("Free Heap     : ");
+  Serial.print(ESP.getFreeHeap());
+  Serial.println(" B");
+
+  // フラッシュ速度を取得
+  Serial.print("Flash Speed   : ");
+  Serial.print(ESP.getFlashChipSpeed() / 1000000);
+  Serial.println(" MHz");
+
+  // チップIDを取得
+  Serial.print("Chip ID       : ");
+  Serial.println(ESP.getChipId());
+
+  // SDKバージョンを取得
+  Serial.print("SDK Version   : ");
+  Serial.println(ESP.getSdkVersion());
+
   Serial.println("===============================================");
   Serial.println("");
 
@@ -172,12 +219,14 @@ String createJson() {
   float discomfortIndex = temperature + 0.36 * humidity + 41.2; // 不快指数の計算
 
   //
-  doc["temperature"]     = temperature;               // 温度
-  doc["humidity"]        = humidity;                  // 湿度
-  doc["pressure"]        = pressure;                  // 気圧
-  doc["discomfortIndex"] = discomfortIndex;           // 不快指数
-  doc["hostname"]        = hostname;                  // ホスト名
-  doc["ipaddress"]       = WiFi.localIP().toString(); // IPアドレス
+  doc["temperature"]     = temperature;               // 温度 (摂氏)
+  doc["humidity"]        = humidity;                  // 湿度 (%)
+  doc["pressure"]        = pressure;                  // 気圧 (hPa)
+  doc["discomfortIndex"] = discomfortIndex;           // 不快指数 (相対的な快適さを示す指標)
+  doc["status"]          = 1;                         // ステータス (正常の場合は1)
+  doc["message"]         = "正常に取得できました。";      // メッセージ (データ取得が成功したことを示す)
+  doc["hostname"]        = hostname;                  // ホスト名 (デバイスの名前)
+  doc["ipaddress"]       = WiFi.localIP().toString(); // IPアドレス (デバイスのネットワークアドレス)
 
   // JSONデータを文字列にシリアライズ
   String json;
