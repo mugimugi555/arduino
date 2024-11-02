@@ -26,11 +26,11 @@ const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
 const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.local/ でアクセスできるようになります。
 
-// センサー値を格納するための変数
-int sensorValue;
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
 
-// Webサーバー設定
-AsyncWebServer server(80); // ポート80で非同期Webサーバーを初期化
+// ポート80で非同期Webサーバーを初期化
+AsyncWebServer server(80);
 
 // セットアップ関数
 void setup(void) {
@@ -167,7 +167,7 @@ void connectToWiFi() {
 //----------------------------------------------------------------------------
 void setupWebServer() {
 
-  // ルーtへのアクセス
+  // ルートへのアクセス
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     String jsonResponse = createJson();
     request->send(200, "application/json", jsonResponse);
@@ -219,7 +219,7 @@ void displayInfoTask() {
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();
 
-  if (currentMillis - lastTaskMillis >= 1000) {
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
     lastTaskMillis = currentMillis;
     Serial.println(createJson());
   }

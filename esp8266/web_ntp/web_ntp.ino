@@ -42,8 +42,11 @@ const int UPDATE_INTERVAL  = 60000;          // 1分（60000ミリ秒）
 WiFiUDP ntpUDP;
 NTPClient ntpClient(ntpUDP, NTP_SERVER, TIMEZONE_OFFSET, UPDATE_INTERVAL);
 
-// Webサーバー設定
-AsyncWebServer server(80); // ポート80で非同期Webサーバーを初期化
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
+
+// ポート80で非同期Webサーバーを初期化
+AsyncWebServer server(80);
 
 //----------------------------------------------------------------------------
 // 初期実行
@@ -76,6 +79,8 @@ void loop() {
 
   // タスク処理
   displayInfoTask();
+
+  //
   syncNtpTask();
 
   // ホスト名の更新
@@ -190,7 +195,7 @@ void connectToWiFi() {
 //----------------------------------------------------------------------------
 void setupWebServer() {
 
-  // ルーtへのアクセス
+  // ルートへのアクセス
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     String jsonResponse = createJson();
     request->send(200, "application/json", jsonResponse);
@@ -256,7 +261,7 @@ void displayInfoTask() {
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();
 
-  if (currentMillis - lastTaskMillis >= 1000) {
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
     lastTaskMillis = currentMillis;
     Serial.println(createJson());
   }

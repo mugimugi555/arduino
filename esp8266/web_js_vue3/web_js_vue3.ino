@@ -39,7 +39,10 @@ const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.l
 
 DHT dht(DHTPIN, DHTTYPE);
 
-// 非同期Webサーバーの初期化
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
+
+// ポート80で非同期Webサーバーを初期化
 AsyncWebServer server(80);
 
 // WebSocketの初期化
@@ -326,47 +329,7 @@ void setupWebServer() {
 
 }
 
-//----------------------------------------------------------------------------
-// タスク処理
-//----------------------------------------------------------------------------
-
-// センサーのデータを取得し、JSONで出力
-void displayInfoTask() {
-
-  static unsigned long lastTaskMillis = 0;
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - lastTaskMillis >= 1000) {
-    lastTaskMillis = currentMillis;
-
-    String jsonData = createJson();
-
-    // WebSocketで送信
-    ws.textAll(jsonData);
-
-    // シリアルで出力
-    Serial.println(jsonData);
-
-  }
-
-}
-
-// 0.5秒ごとにホスト名を更新する関数
-void updateMdnsTask() {
-
-  static unsigned long lastMdnsMillis = 0;
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - lastMdnsMillis >= 500) {
-    lastMdnsMillis = currentMillis;
-    MDNS.update();
-  }
-
-}
-
-//----------------------------------------------------------------------------
 // 取得されるデータをJSON形式で生成
-//----------------------------------------------------------------------------
 String createJson() {
 
   StaticJsonDocument<256> doc;
@@ -391,5 +354,43 @@ String createJson() {
   serializeJson(doc, json);
 
   return json;
+
+}
+
+//----------------------------------------------------------------------------
+// タスク処理
+//----------------------------------------------------------------------------
+
+// センサーのデータを取得し、JSONで出力
+void displayInfoTask() {
+
+  static unsigned long lastTaskMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
+    lastTaskMillis = currentMillis;
+
+    String jsonData = createJson();
+
+    // WebSocketで送信
+    ws.textAll(jsonData);
+
+    // シリアルで出力
+    Serial.println(jsonData);
+
+  }
+
+}
+
+// 0.5秒ごとにホスト名を更新する関数
+void updateMdnsTask() {
+
+  static unsigned long lastMdnsMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastMdnsMillis >= 500) {
+    lastMdnsMillis = currentMillis;
+    MDNS.update();
+  }
 
 }

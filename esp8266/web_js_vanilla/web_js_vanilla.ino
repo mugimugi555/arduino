@@ -39,7 +39,10 @@ const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.l
 
 DHT dht(DHTPIN, DHTTYPE);
 
-// 非同期Webサーバーの初期化
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
+
+// ポート80で非同期Webサーバーを初期化
 AsyncWebServer server(80);
 
 // WebSocketの初期化
@@ -350,7 +353,7 @@ void displayInfoTask() {
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();
 
-  if (currentMillis - lastTaskMillis >= 1000) {
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
     lastTaskMillis = currentMillis;
 
     String jsonData = createJson();

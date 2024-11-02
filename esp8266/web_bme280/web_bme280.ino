@@ -200,7 +200,7 @@ void connectToWiFi() {
 //----------------------------------------------------------------------------
 void setupWebServer() {
 
-  // ルーtへのアクセス
+  // ルートへのアクセス
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     String jsonResponse = createJson();
     request->send(200, "application/json", jsonResponse);

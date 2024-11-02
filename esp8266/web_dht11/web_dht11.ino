@@ -38,10 +38,11 @@ const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.l
 #define DHTTYPE DHT11 // DHTセンサーの種類（DHT11 または DHT22）
 DHT dht(DHTPIN, DHTTYPE);
 
-float sensorGetInterval = 1.0; // センサーの値を指定秒ごとに取得
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
 
-// Webサーバー設定
-AsyncWebServer server(80); // 非同期Webサーバーの初期化
+// ポート80で非同期Webサーバーを初期化
+AsyncWebServer server(80);
 
 //----------------------------------------------------------------------------
 // 初期実行
@@ -182,7 +183,7 @@ void connectToWiFi() {
 //----------------------------------------------------------------------------
 void setupWebServer() {
 
-  // ルーtへのアクセス
+  // ルートへのアクセス
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     String jsonResponse = createJson();
     request->send(200, "application/json", jsonResponse);
@@ -232,7 +233,7 @@ void displayInfoTask() {
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();
 
-  if (currentMillis - lastTaskMillis >= 1000) {
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
     lastTaskMillis = currentMillis;
     Serial.println(createJson());
   }

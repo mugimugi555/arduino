@@ -26,11 +26,11 @@ const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
 const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.local/ でアクセスできるようになります。
 
-//
-const long taskInterval = 1; // タスクを繰り返し実行する間隔（秒）
-unsigned long previousMillis = 0; // 最後の更新時間を記録
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
 
-AsyncWebServer server(80); // ポート80で非同期Webサーバーを初期化
+// ポート80で非同期Webサーバーを初期化
+AsyncWebServer server(80);
 
 //----------------------------------------------------------------------------
 // 初期実行
@@ -56,16 +56,11 @@ void setup() {
 //----------------------------------------------------------------------------
 void loop() {
 
-  unsigned long currentMillis = millis();
-
-  // タスクを毎秒実行
-  if (currentMillis - previousMillis >= taskInterval * 1000 ) {
-    previousMillis = currentMillis;
-    Serial.println(createJson());
-  }
+  // タスク処理
+  displayInfoTask();
 
   // ホスト名の更新
-  MDNS.update();
+  updateMdnsTask();
 
 }
 
@@ -176,7 +171,7 @@ void connectToWiFi() {
 //----------------------------------------------------------------------------
 void setupWebServer() {
 
-  // ルーtへのアクセス
+  // ルートへのアクセス
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     String jsonResponse = createJson();
     request->send(200, "application/json", jsonResponse);
@@ -218,5 +213,35 @@ String createJson() {
   serializeJson(doc, json);
 
   return json;
+
+}
+
+//----------------------------------------------------------------------------
+// タスク処理
+//----------------------------------------------------------------------------
+
+// 1秒ごとに情報を表示する関数
+void displayInfoTask() {
+
+  static unsigned long lastTaskMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
+    lastTaskMillis = currentMillis;
+    Serial.println(createJson());
+  }
+
+}
+
+// 0.5秒ごとにホスト名を更新する関数
+void updateMdnsTask() {
+
+  static unsigned long lastMdnsMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastMdnsMillis >= 500) {
+    lastMdnsMillis = currentMillis;
+    MDNS.update();
+  }
 
 }
