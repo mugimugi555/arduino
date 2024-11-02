@@ -7,7 +7,8 @@ arduino-cli core install esp8266:esp8266
 # このプログラムで必要なライブラリのインストール
 arduino-cli lib install "ESP8266WiFi"       # ESP8266ボード用のWiFi機能を提供するライブラリ
 arduino-cli lib install "ESP8266mDNS"       # mDNS（マルチキャストDNS）を使用して、ESP8266デバイスをネットワークで簡単に見つけられるようにするライブラリ
-arduino-cli lib install "ESP8266WebServer"  # ESP8266上でWebサーバー機能を実装するためのライブラリ
+arduino-cli lib install "ESPAsyncTCP"       # ESP8266用の非同期TCP通信を提供するライブラリ。非同期的に複数のクライアントと接続するために使用します。
+arduino-cli lib install "ESPAsyncWebServer" # ESP8266用の非同期Webサーバーライブラリ。HTTPリクエストの処理やレスポンスを非同期に行うことができ、複数のクライアントからのリクエストに同時に対応できます。
 arduino-cli lib install "ArduinoJson"       # JSON形式のデータを簡単に作成、解析するためのライブラリ
 arduino-cli lib install "WiFiUdp"           # UDP通信を使用するためのWiFiライブラリ
 arduino-cli lib install "NTPClient"         # NTP（Network Time Protocol）を使用して、正確な時刻を取得するためのライブラリ
@@ -21,7 +22,7 @@ bash upload_esp8266_web.sh web_ntp/web_ntp.ino wifissid wifipasswd hostname
 //
 #include <ESP8266WiFi.h>       // ESP8266用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
 #include <ESP8266mDNS.h>       // mDNS（マルチキャストDNS）を使用するためのライブラリ。デバイスをネットワークで簡単に発見できるようにします。
-#include <ESP8266WebServer.h>  // ESP8266デバイスでWebサーバーを構築するためのライブラリ。HTTPリクエストの処理やWebページの提供が可能です。
+#include <ESPAsyncWebServer.h> // 非同期Webサーバーライブラリ。
 #include <ArduinoJson.h>       // JSON形式のデータを作成・解析するためのライブラリ。API通信やデータの保存に役立ちます。
 #include <WiFiUdp.h>           // UDP通信を行うためのWiFiライブラリ。簡単にデータの送受信が可能です。
 #include <NTPClient.h>         // NTP（Network Time Protocol）サーバーから時刻情報を取得するためのライブラリ。正確な時刻を得るのに便利です。
@@ -32,12 +33,17 @@ const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
 const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.local/ でアクセスできるようになります。
 
-// NTPクライアント設定
+// タイムゾーン（秒単位）、更新間隔（ミリ秒単位）、NTPサーバー名の定数
+const char* NTP_SERVER     = "pool.ntp.org"; // NTPサーバー
+const long TIMEZONE_OFFSET = 9 * 3600;       // JST (UTC+9)
+const int UPDATE_INTERVAL  = 60000;          // 1分（60000ミリ秒）
+
+// NTPClientインスタンスの生成
 WiFiUDP ntpUDP;
-NTPClient ntpClient(ntpUDP, "pool.ntp.org", 9 * 3600, 60000);  // JST (UTC+9)
+NTPClient ntpClient(ntpUDP, NTP_SERVER, TIMEZONE_OFFSET, UPDATE_INTERVAL);
 
 // Webサーバー設定
-ESP8266WebServer server(80);
+AsyncWebServer server(80); // ポート80で非同期Webサーバーを初期化
 
 //----------------------------------------------------------------------------
 // 初期実行
@@ -46,7 +52,7 @@ void setup() {
 
   Serial.begin(115200);
 
-  //
+  // 起動画面の表示
   showSplash();
 
   // WiFi接続
@@ -57,11 +63,8 @@ void setup() {
   ntpClient.update();
   setTime(ntpClient.getEpochTime());
 
-  // ルートURLへのハンドラを設定
-  server.on("/", handleRoot);
-
   // Webサーバーの開始
-  server.begin();
+  setupWebServer();
 
 }
 
@@ -71,18 +74,14 @@ void setup() {
 void loop() {
 
   // タスク処理
-  handleTask();
-
-  // クライアントリクエストを処理
-  server.handleClient();
-
-  // ホスト名の更新
-  MDNS.update();
+  displayInfoTask();
+  syncNtpTask();
+  updateMdnsTask();
 
 }
 
 //----------------------------------------------------------------------------
-// スプラッシュ画面の表示
+// 起動画面の表示
 //----------------------------------------------------------------------------
 void showSplash(){
 
@@ -97,6 +96,40 @@ void showSplash(){
   Serial.println("  |_____|____/|_|   \\___/_____|\\___/ \\___/ ");
   Serial.println("");
   Serial.println("===============================================");
+
+  // ボード名を表示
+  Serial.print("Board         : ");
+  Serial.println(ARDUINO_BOARD);
+
+  // CPUの周波数を表示
+  Serial.print("CPU Frequency : ");
+  Serial.print(ESP.getCpuFreqMHz());
+  Serial.println(" MHz");
+
+  // フラッシュサイズを表示
+  Serial.print("Flash Size    : ");
+  Serial.print(ESP.getFlashChipSize() / 1024);
+  Serial.println(" KB");
+
+  // 空きヒープメモリを表示
+  Serial.print("Free Heap     : ");
+  Serial.print(ESP.getFreeHeap());
+  Serial.println(" B");
+
+  // フラッシュ速度を取得
+  Serial.print("Flash Speed   : ");
+  Serial.print(ESP.getFlashChipSpeed() / 1000000);
+  Serial.println(" MHz");
+
+  // チップIDを取得
+  Serial.print("Chip ID       : ");
+  Serial.println(ESP.getChipId());
+
+  // SDKバージョンを取得
+  Serial.print("SDK Version   : ");
+  Serial.println(ESP.getSdkVersion());
+
+  Serial.println("===============================================");
   Serial.println("");
 
 }
@@ -109,24 +142,23 @@ void connectToWiFi() {
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
 
-  Serial.print("Connecting to ");
-  Serial.print(ssid);
+  Serial.print("Connected to ");
+  Serial.println(ssid);
 
   // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("Connected");
 
   // mDNSサービスの開始
+  Serial.println("");
   if (MDNS.begin(hostname)) {
     Serial.println("mDNS responder started");
   } else {
     Serial.println("Error setting up mDNS responder!");
   }
 
-  Serial.println("");
   Serial.println("===============================================");
   Serial.println("              Network Details                  ");
   Serial.println("===============================================");
@@ -145,21 +177,24 @@ void connectToWiFi() {
   Serial.println(WiFi.dnsIP());
   Serial.print("MAC address  : ");
   Serial.println(WiFi.macAddress());
-  Serial.println("-----------------------------------------------");
+  Serial.println("===============================================");
   Serial.println("");
 
 }
 
 //----------------------------------------------------------------------------
-// Webサーバー系
+// Webサーバーの設定
 //----------------------------------------------------------------------------
+void setupWebServer() {
 
-// ルートURLにアクセスした際の処理
-void handleRoot() {
+  // ルーtへのアクセス
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String jsonResponse = createJson();
+    request->send(200, "application/json", jsonResponse);
+  });
 
-  // HTTPレスポンスを送信
-  String jsonResponse = createJson();
-  server.send(200, "application/json", jsonResponse);
+  // Webサーバーを開始
+  server.begin();
 
 }
 
@@ -168,40 +203,29 @@ String createJson() {
 
   // JSONオブジェクトを作成
   StaticJsonDocument<200> doc;
-  doc["datetime"]  = formatDatetime();          // yyyy-mm-dd hh:ii:ss
-  doc["hostname"]  = hostname;                  // ホスト名
-  doc["ipaddress"] = WiFi.localIP().toString(); // IPアドレス
+
+  // NTP情報
+  doc["epoch_time"]      = ntpClient.getEpochTime();
+  doc["formatted_time"]  = ntpClient.getFormattedTime();
+  //doc["time_offset"]     = ntpClient.getTimeOffset();
+  //doc["ntp_server"]      = ntpClient.getPoolServerName();
+  //doc["update_interval"] = ntpClient.getUpdateInterval();
+  doc["ntp_server"]      = NTP_SERVER;
+  doc["timezone_offset"] = TIMEZONE_OFFSET;
+  doc["update_interval"] = UPDATE_INTERVAL;
+
+  // 基本情報
+  doc["datetime"]        = formatDatetime();
+  doc["hostname"]        = hostname;
+  doc["ipaddress"]       = WiFi.localIP().toString();
+  doc["status"]          = 1;
+  doc["message"]         = "正常に取得できました。";
 
   // JSONデータを文字列にシリアライズ
   String json;
   serializeJson(doc, json);
 
   return json;
-
-}
-
-//----------------------------------------------------------------------------
-// タスク処理
-//----------------------------------------------------------------------------
-
-// 定期時間ごとに実行する関数
-void handleTask(){
-
-  static unsigned long lastMillis = 0;
-  unsigned long currentMillis = millis();
-
-  // 1秒ごとに情報を表示
-  if (currentMillis - lastMillis >= 1000) {
-    lastMillis = currentMillis;
-    Serial.println(createJson());
-  }
-
-  // 1時間に1回NTPで同期
-  if (currentMillis % 3600000 == 0) {
-    ntpClient.update();
-    setTime(ntpClient.getEpochTime());
-    Serial.println("NTP time synced");
-  }
 
 }
 
@@ -216,5 +240,50 @@ String formatDatetime() {
                     (second() < 10 ? "0" + String(second()) : String(second()));
 
   return datetime;
+
+}
+
+//----------------------------------------------------------------------------
+// タスク処理
+//----------------------------------------------------------------------------
+
+// 1秒ごとに情報を表示する関数
+void displayInfoTask() {
+
+  static unsigned long lastTaskMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTaskMillis >= 1000) {
+    lastTaskMillis = currentMillis;
+    Serial.println(createJson());
+  }
+
+}
+
+// 1時間ごとにNTPと同期する関数
+void syncNtpTask() {
+
+  static unsigned long lastSyncMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastSyncMillis >= 3600000) {
+    lastSyncMillis = currentMillis;
+    ntpClient.update();
+    setTime(ntpClient.getEpochTime());
+    Serial.println("NTP time synced");
+  }
+
+}
+
+// 0.5秒ごとにホスト名を更新する関数
+void updateMdnsTask() {
+
+  static unsigned long lastMdnsMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastMdnsMillis >= 500) {
+    lastMdnsMillis = currentMillis;
+    MDNS.update();
+  }
 
 }
