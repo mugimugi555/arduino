@@ -37,10 +37,14 @@ const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.l
 // SDA  <---------->  D2 (GPIO 4)
 // SCL  <---------->  D1 (GPIO 5)
 
-float sensorGetInterval = 1.0; // センサーの値を指定秒ごとに取得
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
 
-Adafruit_BME280 bme;       // BME280オブジェクトの作成
-AsyncWebServer server(80); // 非同期Webサーバーの初期化
+// ポート80で非同期Webサーバーを初期化
+AsyncWebServer server(80);
+
+// BME280オブジェクトの作成
+Adafruit_BME280 bme;
 
 //----------------------------------------------------------------------------
 // 初期実行
@@ -252,7 +256,7 @@ void displayInfoTask() {
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();
 
-  if (currentMillis - lastTaskMillis >= 1000) {
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
     lastTaskMillis = currentMillis;
     Serial.println(createJson());
   }
