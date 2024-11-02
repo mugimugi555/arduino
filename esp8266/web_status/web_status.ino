@@ -5,11 +5,11 @@ arduino-cli config add-board manager.url http://arduino.esp8266.com/stable/packa
 arduino-cli core install esp8266:esp8266
 
 # このプログラムで必要なライブラリのインストール
-arduino-cli lib install "ESP8266WiFi"             # ESP8266ボード用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
-arduino-cli lib install "ESP8266mDNS"             # mDNS（マルチキャストDNS）を使用して、ESP8266デバイスをネットワークで簡単に見つけられるようにするライブラリ。
-arduino-cli lib install "ESPAsyncTCP"             # ESP8266用の非同期TCP通信を提供するライブラリ。非同期的に複数のクライアントと接続するために使用します。
-arduino-cli lib install "ESPAsyncWebServer"       # ESP8266用の非同期Webサーバーライブラリ。HTTPリクエストの処理やレスポンスを非同期に行うことができ、複数のクライアントからのリクエストに同時に対応できます。
-arduino-cli lib install "ArduinoJson"             # JSON形式のデータを簡単に作成、解析するためのライブラリ。API通信やデータの保存に役立ち、シリアライズやデシリアライズが簡単に行えます。
+arduino-cli lib install "ESP8266WiFi"       # ESP8266ボード用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
+arduino-cli lib install "ESP8266mDNS"       # mDNS（マルチキャストDNS）を使用して、ESP8266デバイスをネットワークで簡単に見つけられるようにするライブラリ。
+arduino-cli lib install "ESPAsyncTCP"       # ESP8266用の非同期TCP通信を提供するライブラリ。非同期的に複数のクライアントと接続するために使用します。
+arduino-cli lib install "ESPAsyncWebServer" # ESP8266用の非同期Webサーバーライブラリ。HTTPリクエストの処理やレスポンスを非同期に行うことができ、複数のクライアントからのリクエストに同時に対応できます。
+arduino-cli lib install "ArduinoJson"       # JSON形式のデータを簡単に作成、解析するためのライブラリ。API通信やデータの保存に役立ち、シリアライズやデシリアライズが簡単に行えます。
 
 # コンパイルとアップロード例
 bash upload_esp8266_web.sh web_bme280/web_bme280.ino wifissid wifipasswd hostname
@@ -20,7 +20,6 @@ bash upload_esp8266_web.sh web_bme280/web_bme280.ino wifissid wifipasswd hostnam
 #include <ESP8266mDNS.h>       // mDNS（マルチキャストDNS）を使用するためのライブラリ。
 #include <ESPAsyncWebServer.h> // 非同期Webサーバーライブラリ。
 #include <ArduinoJson.h>       // ArduinoJsonライブラリ。
-#include <Wire.h>
 
 // WiFi SSIDとパスワードをホスト名を指定
 const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
@@ -195,19 +194,23 @@ String createJson() {
   StaticJsonDocument<512> doc; // JSONドキュメントのサイズを設定
 
   // Wi-Fi情報を追加
-  doc["SSID"]                = WiFi.SSID();
-  doc["RSSI (dBm)"]          = WiFi.RSSI();
-  doc["IP Address"]          = WiFi.localIP().toString();
-  doc["MAC Address"]         = WiFi.macAddress();
-  doc["Board"]               = ARDUINO_BOARD;                 // ボード名を表示
-  doc["CPU Frequency (MHz)"] = ESP.getCpuFreqMHz();           // CPUの周波数を表示
-  doc["Flash Size (KB)"]     = ESP.getFlashChipSize() / 1024; // フラッシュサイズを表示
-  doc["Free Heap (B)"]       = ESP.getFreeHeap();             // 空きヒープメモリを表示
-  doc["Flash Speed (MHz)"]   = ESP.getFlashChipSpeed();       // フラッシュ速度を取得
-  doc["Chip ID"]             = ESP.getChipId();               // チップIDを取得
-  doc["SDK Version"]         = ESP.getSdkVersion();           // SDKバージョンを取得
-  doc["status"]              = 1;                             // ステータス (正常の場合は1)
-  doc["message"]             = "正常に取得できました。";          // メッセージ (データ取得が成功したことを示す)
+  doc["SSID"]                = WiFi.SSID();                       // 現在接続中のWi-FiのSSID（ネットワーク名）を追加
+  doc["RSSI (dBm)"]          = WiFi.RSSI();                       // Wi-Fi信号の強度 (RSSI) をデシベルで表示
+  doc["IP Address"]          = WiFi.localIP().toString();         // デバイスのIPアドレスを取得して追加
+  doc["MAC Address"]         = WiFi.macAddress();                 // デバイスのMACアドレスを取得して追加
+
+  // ハードウェア情報を追加
+  doc["Board"]               = ARDUINO_BOARD;                     // 使用しているボード名を追加 (例: ESP8266)
+  doc["CPU Frequency (MHz)"] = ESP.getCpuFreqMHz();               // 現在のCPUの動作周波数 (MHz単位) を取得して追加
+  doc["Flash Size (KB)"]     = ESP.getFlashChipSize() / 1024;     // デバイスのフラッシュメモリサイズをKB単位で表示
+  doc["Free Heap (B)"]       = ESP.getFreeHeap();                 // 使用可能なヒープメモリ容量 (バイト単位) を表示
+  doc["Flash Speed (MHz)"]   = ESP.getFlashChipSpeed() / 1000000; // フラッシュメモリの速度をMHz単位で表示
+  doc["Chip ID"]             = ESP.getChipId();                   // ESPデバイスのユニークなチップIDを取得
+  doc["SDK Version"]         = ESP.getSdkVersion();               // 使用中のSDKバージョンを追加
+
+  // ステータス情報
+  doc["status"]              = 1;                                 // ステータスコード (1は正常)
+  doc["message"]             = "正常に取得できました。";              // データ取得が成功したメッセージを表示
 
   // JSONデータを文字列にシリアライズ
   String json;
