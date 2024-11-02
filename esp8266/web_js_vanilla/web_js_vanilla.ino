@@ -185,7 +185,7 @@ void setup() {
   Serial.begin(115200);
 
   // 起動画面の表示
-  showSplash();
+  showStartupScreen();
 
   //
   dht.begin();
@@ -207,7 +207,7 @@ void loop() {
   ws.cleanupClients();
 
   // タスク処理
-  displayInfoTask();
+  fetchAndShowDataTask();
 
   // ホスト名の更新
   updateMdnsTask();
@@ -217,7 +217,7 @@ void loop() {
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showSplash(){
+void showStartupScreen(){
 
   // figlet ESP8266
   Serial.println("");
@@ -348,7 +348,7 @@ void setupWebServer() {
 //----------------------------------------------------------------------------
 
 // センサーのデータを取得し、JSONで出力
-void displayInfoTask() {
+void fetchAndShowDataTask() {
 
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();

@@ -57,7 +57,7 @@ void setup() {
   Serial.begin(115200);
 
   // 起動画面の表示
-  showSplash();
+  showStartupScreen();
 
   // WiFi接続
   connectToWiFi();
@@ -78,7 +78,7 @@ void setup() {
 void loop() {
 
   // タスク処理
-  displayInfoTask();
+  fetchAndShowDataTask();
 
   //
   syncNtpTask();
@@ -91,7 +91,7 @@ void loop() {
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showSplash(){
+void showStartupScreen(){
 
   // figlet ESP8266
   Serial.println("");
@@ -256,7 +256,7 @@ String formatDatetime() {
 //----------------------------------------------------------------------------
 
 // 1秒ごとに情報を表示する関数
-void displayInfoTask() {
+void fetchAndShowDataTask() {
 
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();
