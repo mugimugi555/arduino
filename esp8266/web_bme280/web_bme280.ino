@@ -37,10 +37,10 @@ const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.l
 // SDA  <---------->  D2 (GPIO 4)
 // SCL  <---------->  D1 (GPIO 5)
 
+float sensorGetInterval = 1.0; // センサーの値を指定秒ごとに取得
+
 Adafruit_BME280 bme;       // BME280オブジェクトの作成
 AsyncWebServer server(80); // 非同期Webサーバーの初期化
-
-float sensorGetInterval = 1.0; // センサーの値を指定秒ごとに取得
 
 //----------------------------------------------------------------------------
 // 初期実行
@@ -75,14 +75,8 @@ void setup() {
   // WiFi接続
   connectToWiFi();
 
-  // ルートURLへのハンドラを設定
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    String jsonResponse = createJson();
-    request->send(200, "application/json", jsonResponse);
-  });
-
   // Webサーバーの開始
-  server.begin();
+  setupWebServer();
 
 }
 
@@ -91,17 +85,11 @@ void setup() {
 //----------------------------------------------------------------------------
 void loop() {
 
-  static unsigned long lastMillis = 0;
-  unsigned long currentMillis = millis();
-
-  // sensorGetInterval 秒ごとに情報をシリアル表示
-  if (currentMillis - lastMillis >= sensorGetInterval * 1000) {
-    lastMillis = currentMillis;
-    Serial.println(createJson());
-  }
+  // タスク処理
+  displayInfoTask();
 
   // ホスト名の更新
-  MDNS.update();
+  updateMdnsTask();
 
 }
 
@@ -208,6 +196,22 @@ void connectToWiFi() {
 }
 
 //----------------------------------------------------------------------------
+// Webサーバーの設定
+//----------------------------------------------------------------------------
+void setupWebServer() {
+
+  // ルーtへのアクセス
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String jsonResponse = createJson();
+    request->send(200, "application/json", jsonResponse);
+  });
+
+  // Webサーバーを開始
+  server.begin();
+
+}
+
+//----------------------------------------------------------------------------
 // 取得されるデータをJSON形式で生成
 //----------------------------------------------------------------------------
 String createJson() {
@@ -238,3 +242,32 @@ String createJson() {
 
 }
 
+//----------------------------------------------------------------------------
+// タスク処理
+//----------------------------------------------------------------------------
+
+// 1秒ごとに情報を表示する関数
+void displayInfoTask() {
+
+  static unsigned long lastTaskMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTaskMillis >= 1000) {
+    lastTaskMillis = currentMillis;
+    Serial.println(createJson());
+  }
+
+}
+
+// 0.5秒ごとにホスト名を更新する関数
+void updateMdnsTask() {
+
+  static unsigned long lastMdnsMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastMdnsMillis >= 500) {
+    lastMdnsMillis = currentMillis;
+    MDNS.update();
+  }
+
+}
