@@ -50,6 +50,7 @@ AsyncWebServer server(80); // ポート80で非同期Webサーバーを初期化
 //----------------------------------------------------------------------------
 void setup() {
 
+  // シリアル通信を115200ボーで開始(picocom -b 115200 /dev/ttyUSB0)
   Serial.begin(115200);
 
   // 起動画面の表示
@@ -76,6 +77,8 @@ void loop() {
   // タスク処理
   displayInfoTask();
   syncNtpTask();
+
+  // ホスト名の更新
   updateMdnsTask();
 
 }
@@ -205,17 +208,17 @@ String createJson() {
   StaticJsonDocument<200> doc;
 
   // NTP情報
+  doc["datetime"]        = formatDatetime();
+  doc["ntp_server"]      = NTP_SERVER;
+  doc["timezone_offset"] = TIMEZONE_OFFSET;
+  doc["update_interval"] = UPDATE_INTERVAL;
   doc["epoch_time"]      = ntpClient.getEpochTime();
   doc["formatted_time"]  = ntpClient.getFormattedTime();
   //doc["time_offset"]     = ntpClient.getTimeOffset();
   //doc["ntp_server"]      = ntpClient.getPoolServerName();
   //doc["update_interval"] = ntpClient.getUpdateInterval();
-  doc["ntp_server"]      = NTP_SERVER;
-  doc["timezone_offset"] = TIMEZONE_OFFSET;
-  doc["update_interval"] = UPDATE_INTERVAL;
 
   // 基本情報
-  doc["datetime"]        = formatDatetime();
   doc["hostname"]        = hostname;
   doc["ipaddress"]       = WiFi.localIP().toString();
   doc["status"]          = 1;
