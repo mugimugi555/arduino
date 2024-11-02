@@ -40,6 +40,8 @@ const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.l
 Adafruit_BME280 bme;       // BME280オブジェクトの作成
 AsyncWebServer server(80); // 非同期Webサーバーの初期化
 
+float sensorGetInterval = 1.0; // センサーの値を指定秒ごとに取得
+
 //----------------------------------------------------------------------------
 // 初期実行
 //----------------------------------------------------------------------------
@@ -91,8 +93,8 @@ void loop() {
   static unsigned long lastMillis = 0;
   unsigned long currentMillis = millis();
 
-  // 1秒ごとに情報をシリアル表示
-  if (currentMillis - lastMillis >= 1000) {
+  // sensorGetInterval 秒ごとに情報をシリアル表示
+  if (currentMillis - lastMillis >= sensorGetInterval * 1000) {
     lastMillis = currentMillis;
     Serial.println(createJson());
   }
