@@ -166,6 +166,9 @@ void connectToWiFi() {
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
 
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+
   // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -180,8 +183,6 @@ void connectToWiFi() {
     Serial.println("Error setting up mDNS responder!");
   }
 
-  Serial.print("Connected to ");
-  Serial.println(ssid);
   Serial.println("===============================================");
   Serial.println("              Network Details                  ");
   Serial.println("===============================================");
@@ -206,10 +207,8 @@ void connectToWiFi() {
 }
 
 //----------------------------------------------------------------------------
-// Webサーバー系
-//----------------------------------------------------------------------------
-
 // 取得されるデータをJSON形式で生成
+//----------------------------------------------------------------------------
 String createJson() {
 
   StaticJsonDocument<256> doc;
