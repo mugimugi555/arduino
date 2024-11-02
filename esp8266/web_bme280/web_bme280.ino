@@ -1,4 +1,4 @@
-/*
+/*****************************************************************************
 
 # ESP8266ボードのインストール
 arduino-cli config add-board manager.url http://arduino.esp8266.com/stable/package_esp8266com_index.json
@@ -15,7 +15,7 @@ arduino-cli lib install "Adafruit BME280 Library" # Adafruit社のBME280セン�
 # コンパイルとアップロード例
 bash upload_esp8266_web.sh web_bme280/web_bme280.ino wifissid wifipasswd hostname
 
-*/
+*****************************************************************************/
 
 #include <ESP8266WiFi.h>       // ESP8266用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
 #include <ESP8266mDNS.h>       // mDNS（マルチキャストDNS）を使用するためのライブラリ。デバイスをネットワークで簡単に発見できるようにします。
@@ -78,7 +78,7 @@ void loop() {
   static unsigned long lastMillis = 0;
   unsigned long currentMillis = millis();
 
-  // 1秒ごとに情報を表示
+  // 1秒ごとに情報をシリアル表示
   if (currentMillis - lastMillis >= 1000) {
     lastMillis = currentMillis;
     Serial.println(createJson());
@@ -163,17 +163,21 @@ void connectToWiFi() {
 // 取得されるデータをJSON形式で生成
 String createJson() {
 
-  // 不快指数の計算
-  float discomfortIndex = temperature + 0.36 * humidity + 41.2;
+  StaticJsonDocument<256> doc;
 
-  // JSONオブジェクトを作成
-  StaticJsonDocument<200> doc;
-  doc["temperature"]     = bme.readTemperature();       // 温度
-  doc["humidity"]        = bme.readHumidity();          // 湿度
-  doc["discomfortIndex"] = discomfortIndex;             // 不快指数
-  doc["pressure"]        = bme.readPressure() / 100.0F; // PaをhPaに変換
-  doc["hostname"]        = hostname;                    // ホスト名
-  doc["ipaddress"]       = WiFi.localIP().toString();   // IPアドレス
+  //
+  float temperature     = bme.readTemperature();                // 温度
+  float humidity        = bme.readHumidity();                   // 湿度
+  float pressure        = bme.readPressure() / 100.0F;          // hPaに変換
+  float discomfortIndex = temperature + 0.36 * humidity + 41.2; // 不快指数の計算
+
+  //
+  doc["temperature"]     = temperature;               // 温度
+  doc["humidity"]        = humidity;                  // 湿度
+  doc["pressure"]        = pressure;                  // 気圧
+  doc["discomfortIndex"] = discomfortIndex;           // 不快指数
+  doc["hostname"]        = hostname;                  // ホスト名
+  doc["ipaddress"]       = WiFi.localIP().toString(); // IPアドレス
 
   // JSONデータを文字列にシリアライズ
   String json;
