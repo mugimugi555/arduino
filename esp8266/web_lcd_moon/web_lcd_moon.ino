@@ -9,7 +9,6 @@ arduino-cli lib install "ESP8266WiFi"        # ESP8266ボード用のWiFi機能�
 arduino-cli lib install "ESP8266mDNS"        # mDNS（マルチキャストDNS）を使用して、ESP8266デバイスをネットワークで簡単に見つけられるようにするライブラリ。
 arduino-cli lib install "ESPAsyncTCP"        # ESP8266用の非同期TCP通信を提供するライブラリ。非同期的に複数のクライアントと接続するために使用します。
 arduino-cli lib install "ArduinoJson"        # JSON形式のデータを簡単に作成、解析するためのライブラリ
-arduino-cli lib install "DHT sensor library" # DHT11やDHT22温湿度センサー用のライブラリ
 
 # コンパイルとアップロード例
 bash upload_esp8266_web.sh web_ntp/web_ntp.ino wifissid wifipasswd hostname
@@ -39,8 +38,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 const long taskInterval = 24 * 60 * 60; // １日
 
 // Open-Meteo APIのURL
-const char* apiUrl = "https://api.open-meteo.com/v1/forecast?latitude=35.682839&longitude=139.759455&daily=moon_phase&timezone=Asia/Tokyo";
-
+const char* apiUrl = "https://api.open-meteo.com/v3/forecast?latitude=35.682839&longitude=139.759455&daily=moon_phase&timezone=Asia/Tokyo";
 
 // カスタムキャラクターのデータ
 byte newMoon[8]     = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // 新月
