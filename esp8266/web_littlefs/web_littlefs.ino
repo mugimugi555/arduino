@@ -215,6 +215,7 @@ void setupLittleFS() {
     return;
   }
 
+  // LittleFSのフォーマット（要らないかも）
   if (LittleFS.format()) {
     Serial.println("LittleFSがフォーマットされました");
   } else {
@@ -240,19 +241,19 @@ void setupLittleFS() {
 //----------------------------------------------------------------------------
 void setupWebServer() {
 
-  // ルートへのアクセス
+  // CSVファイルをJSONで表示（１０件）
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     String jsonResponse = getCSVDataAsJSON();
     request->send(200, "application/json", jsonResponse);
   });
 
-  // downloadルートを設定
+  // CSVファイルのダウンロード
   server.on("/download", HTTP_GET, [](AsyncWebServerRequest *request) {
     AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/data.csv", "text/plain", true);
     request->send(response); // レスポンスを送信
   });
 
-  //
+  // CSVファイルの削除
   server.on("/delete", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (LittleFS.exists("/data.csv")) {
       LittleFS.remove("/data.csv"); // ファイルを削除
@@ -325,14 +326,14 @@ String convertCSVLineToJSON(String line) {
 
   //
   int firstCommaIndex  = line.indexOf(',');
-  int secondCommaIndex = line.indexOf(',', firstCommaIndex + 1);
+  int secondCommaIndex = line.indexOf(',', firstCommaIndex  + 1);
   int thirdCommaIndex  = line.indexOf(',', secondCommaIndex + 1);
 
   //
   String datetime        = line.substring(0, firstCommaIndex);
-  String temperature     = line.substring(firstCommaIndex + 1, secondCommaIndex);
+  String temperature     = line.substring(firstCommaIndex  + 1, secondCommaIndex);
   String humidity        = line.substring(secondCommaIndex + 1, thirdCommaIndex);
-  String discomfortIndex = line.substring(thirdCommaIndex + 1);
+  String discomfortIndex = line.substring(thirdCommaIndex  + 1);
 
   // JSON形式に整形
   StaticJsonDocument<256> doc;
