@@ -1,142 +1,242 @@
-#include <ESP8266WiFi.h>       // ESP8266用のWiFiライブラリをインクルード
-#include <ESP8266WebServer.h>  // Webサーバー機能のためのライブラリをインクルード
-#include <ESP8266mDNS.h>       // mDNS機能を使用するためのライブラリをインクルード
-#include <WiFiClient.h>
+/*****************************************************************************
+
+# ESP8266ボードのインストール
+arduino-cli config add-board manager.url http://arduino.esp8266.com/stable/package_esp8266com_index.json
+arduino-cli core install esp8266:esp8266
+
+# このプログラムで必要なライブラリのインストール
+arduino-cli lib install "ESP8266WiFi"       # ESP8266ボード用のWiFi機能を提供するライブラリ
+arduino-cli lib install "ESP8266mDNS"       # mDNS（マルチキャストDNS）を使用して、ESP8266デバイスをネットワークで簡単に見つけられるようにするライブラリ
+arduino-cli lib install "ESPAsyncTCP"       # ESP8266用の非同期TCP通信を提供するライブラリ。非同期的に複数のクライアントと接続するために使用します。
+arduino-cli lib install "ESPAsyncWebServer" # ESP8266用の非同期Webサーバーライブラリ。HTTPリクエストの処理やレスポンスを非同期に行うことができ、複数のクライアントからのリクエストに同時に対応できます。
+arduino-cli lib install "ArduinoJson"       # JSON形式のデータを簡単に作成、解析するためのライブラリ
+
+# コンパイルとアップロード例
+bash upload_esp8266_web.sh web_ntp/web_ntp.ino wifissid wifipasswd hostname
+
+*****************************************************************************/
+
+//
+#include <ESP8266WiFi.h>       // ESP8266用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
+#include <ESP8266mDNS.h>       // mDNS（マルチキャストDNS）を使用するためのライブラリ。デバイスをネットワークで簡単に発見できるようにします。
+#include <ESPAsyncWebServer.h> // 非同期Webサーバーライブラリ。
+#include <ArduinoJson.h>       // JSON形式のデータを作成・解析するためのライブラリ。API通信やデータの保存に役立ちます。
 
 // WiFi SSIDとパスワードをホスト名を指定
 const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
-const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名
+const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.local/ でアクセスできるようになります。
 
-int sensorValue;
-const int led = 13;
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
 
-//
-ESP8266WebServer server(80);
+// ポート80で非同期Webサーバーを初期化
+AsyncWebServer server(80);
 
-//
-void setup(void) {
-  
-  //
+//----------------------------------------------------------------------------
+// 初期実行
+//----------------------------------------------------------------------------
+void setup() {
+
+  // シリアル通信を115200ボーで開始(picocom -b 115200 /dev/ttyUSB0)
   Serial.begin(115200);
 
-  //
-  pinMode(led, OUTPUT);
-  digitalWrite(led, 0);
+  // 起動画面の表示
+  showStartup();
 
-  //
+  // WiFi接続
   connectToWiFi();
 
-  //
-  server.on("/", handleRoot);
+  // Webサーバーの開始
+  setupWebServer();
 
-  //
-  server.onNotFound(handleNotFound);
-
-  //
-  server.begin();
-  Serial.println("HTTP server started");
-  
 }
 
-//
-void loop(void) {
-  server.handleClient();
-  MDNS.update();
+//----------------------------------------------------------------------------
+// ループ処理
+//----------------------------------------------------------------------------
+void loop() {
+
+  // タスク処理
+  fetchAndShowTask();
+
+  // ホスト名の更新
+  updateMdnsTask();
+
 }
 
-//
+//----------------------------------------------------------------------------
+// 起動画面の表示
+//----------------------------------------------------------------------------
+void showStartup() {
+
+  // figlet ESP8266
+  Serial.println("");
+  Serial.println("");
+  Serial.println("===============================================");
+  Serial.println("  _____ ____  ____  ___ ____   __    __");
+  Serial.println("  | ____/ ___||  _ \\( _ )___ \\ / /_  / /_  ");
+  Serial.println("  |  _| \\___ \\| |_) / _ \\ __) | '_ \\| '_ \\ ");
+  Serial.println("  | |___ ___) |  __/ (_) / __/| (_) | (_) |");
+  Serial.println("  |_____|____/|_|   \\___/_____|\\___/ \\___/ ");
+  Serial.println("");
+  Serial.println("===============================================");
+
+  // ボード名を表示
+  Serial.print("Board         : ");
+  Serial.println(ARDUINO_BOARD);
+
+  // CPUの周波数を表示
+  Serial.print("CPU Frequency : ");
+  Serial.print(ESP.getCpuFreqMHz());
+  Serial.println(" MHz");
+
+  // フラッシュサイズを表示
+  Serial.print("Flash Size    : ");
+  Serial.print(ESP.getFlashChipSize() / 1024);
+  Serial.println(" KB");
+
+  // 空きヒープメモリを表示
+  Serial.print("Free Heap     : ");
+  Serial.print(ESP.getFreeHeap());
+  Serial.println(" B");
+
+  // フラッシュ速度を取得
+  Serial.print("Flash Speed   : ");
+  Serial.print(ESP.getFlashChipSpeed() / 1000000);
+  Serial.println(" MHz");
+
+  // チップIDを取得
+  Serial.print("Chip ID       : ");
+  Serial.println(ESP.getChipId());
+
+  // SDKバージョンを取得
+  Serial.print("SDK Version   : ");
+  Serial.println(ESP.getSdkVersion());
+
+  Serial.println("===============================================");
+  Serial.println("");
+
+}
+
+//----------------------------------------------------------------------------
+// WiFi接続関数
+//----------------------------------------------------------------------------
 void connectToWiFi() {
 
-  // Connect to WiFi
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
 
-  // Wait for WiFi connection
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+
+  // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
+  // mDNSサービスの開始
   Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
+  if (MDNS.begin(hostname)) {
+    Serial.println("mDNS responder started");
+  } else {
+    Serial.println("Error setting up mDNS responder!");
+  }
 
-  // Display the esp8266's hostname
-  Serial.print("Hostname: http://");
-  Serial.print(WiFi.getHostname());
-  Serial.println(".local");
-
-  // Display the esp8266's IP address
-  Serial.print("IP address: ");
+  Serial.println("===============================================");
+  Serial.println("              Network Details                  ");
+  Serial.println("===============================================");
+  Serial.print("WebServer    : http://");
   Serial.println(WiFi.localIP());
-
-  // Display subnet mask
-  Serial.print("Subnet Mask: ");
+  Serial.print("Hostname     : http://");
+  Serial.print(hostname);
+  Serial.println(".local");
+  Serial.print("IP address   : ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Subnet Mask  : ");
   Serial.println(WiFi.subnetMask());
-
-  // Display gateway IP
-  Serial.print("Gateway IP: ");
+  Serial.print("Gateway IP   : ");
   Serial.println(WiFi.gatewayIP());
-
-  // Display DNS server IP
-  Serial.print("DNS IP: ");
+  Serial.print("DNS IP       : ");
   Serial.println(WiFi.dnsIP());
-
-  // Display the esp8266's MAC address
-  Serial.print("MAC address: ");
+  Serial.print("MAC address  : ");
   Serial.println(WiFi.macAddress());
+  Serial.println("===============================================");
+  Serial.println("");
 
-  // Start mDNS responder
-  if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started");
+}
+
+//----------------------------------------------------------------------------
+// Webサーバーの設定
+//----------------------------------------------------------------------------
+void setupWebServer() {
+
+  // ルートへのアクセス
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String jsonResponse = createJson();
+    request->send(200, "application/json", jsonResponse);
+  });
+
+  // Webサーバーを開始
+  server.begin();
+
+}
+
+//----------------------------------------------------------------------------
+// 取得されるデータをJSON形式で生成
+//----------------------------------------------------------------------------
+String createJson() {
+
+  // アナログピン0からセンサー値を取得
+  int sensorValue = analogRead(0);
+
+  // ArduinoJsonを使用してJSONを生成
+  StaticJsonDocument<200> doc; // 適切なサイズのJSONドキュメントを作成
+
+  // JSONオブジェクトの作成
+  doc["product"]   = "cjmcu-1100";              // 製品名
+  doc["value"]     = sensorValue;               // センサー値
+  doc["unit"]      = "ppm";                     // 単位
+  doc["status"]    = 1;                         // ステータス (正常の場合は1)
+  doc["message"]   = "正常に取得できました。";      // メッセージ (データ取得が成功したことを示す)
+  doc["hostname"]  = hostname;                  // ホスト名 (デバイスの名前)
+  doc["ipaddress"] = WiFi.localIP().toString(); // IPアドレス (デバイスのネットワークアドレス)
+
+  // JSONデータを文字列にシリアライズ
+  String json;
+  serializeJson(doc, json);
+
+  return json;
+
+}
+
+//----------------------------------------------------------------------------
+// タスク処理
+//----------------------------------------------------------------------------
+
+// 1秒ごとに情報を表示する関数
+void fetchAndShowTask() {
+
+  static unsigned long lastTaskMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
+    lastTaskMillis = currentMillis;
+    Serial.println(createJson());
   }
 
 }
 
-//
-void handleRoot() {
+// 0.5秒ごとにホスト名を更新する関数
+void updateMdnsTask() {
 
-  //
-  digitalWrite(led, 1);
+  static unsigned long lastMdnsMillis = 0;
+  unsigned long currentMillis = millis();
 
-  //
-  sensorValue = analogRead(0);
-  Serial.print("formaldehyde = ");
-  Serial.print(sensorValue, DEC);
-  Serial.println(" PPM");
-
-  //
-  String message = '';
-  message += '{';
-  message += '"formaldehyde":{"product":"cjmcu-1100","value":';
-  message += analogRead(0);
-  message += ',"unit":"ppm"}';
-  message += '}';
-
-  //
-  server.send(200, "application/json", message );
-  digitalWrite(led, 0);
-
-}
-
-//
-void handleNotFound() {
-
-  //
-  digitalWrite(led, 1);
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  if (currentMillis - lastMdnsMillis >= 500) {
+    lastMdnsMillis = currentMillis;
+    MDNS.update();
   }
-  server.send(404, "text/plain", message);
-  digitalWrite(led, 0);
 
 }
