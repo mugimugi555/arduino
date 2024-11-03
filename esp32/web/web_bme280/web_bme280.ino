@@ -46,7 +46,7 @@ void setup(void) {
 
 }
 
-void loop(void) {
+void loop() {
 
   // クライアントからのリクエストを処理
   server.handleClient();

@@ -50,7 +50,7 @@ void setup(void) {
 }
 
 // メインループ
-void loop(void) {
+void loop() {
 
   // タスク処理
   fetchAndShowDataTask();
@@ -63,7 +63,7 @@ void loop(void) {
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen(){
+void showStartupScreen() {
 
   // figlet ESP8266
   Serial.println("");

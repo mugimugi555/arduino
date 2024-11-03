@@ -1,22 +1,25 @@
-//
-// arduino-cli lib install "LiquidCrystal I2C"
-// arduino-cli lib install "ArduinoJson"
+/*****************************************************************************
 
-//
-// [ESP8266] <---> [LCD]
-// 3.3V <--------> VCC
-// GND <---------> GND
-// GPIO 4 (D2) <-> SDA
-// GPIO 5 (D1) <-> SCL
+# ESP8266ボードのインストール
+arduino-cli config add-board manager.url http://arduino.esp8266.com/stable/package_esp8266com_index.json
+arduino-cli core install esp8266:esp8266
 
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-#include <ArduinoJson.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266HTTPClient.h>
-#include <WiFiClientSecure.h>
+# このプログラムで必要なライブラリのインストール
+arduino-cli lib install "ESP8266WiFi"        # ESP8266ボード用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
+arduino-cli lib install "ESPAsyncTCP"        # ESP8266用の非同期TCP通信を提供するライブラリ。非同期で複数のクライアントと通信できるようにし、WebSocketやHTTPサーバーのバックエンドで使用されます。
+arduino-cli lib install "ArduinoJson"        # JSON形式のデータを簡単に作成、解析するためのライブラリ。API通信やセンサーデータの整理、保存に役立ちます。
+arduino-cli lib install "LiquidCrystal I2C"  # I2C接続のLCDディスプレイを制御するためのライブラリ。データやメッセージをディスプレイ上に表示するのに使用します。
+
+# コンパイルとアップロード例
+bash upload_esp8266_web.sh web_ntp/web_ntp.ino wifissid wifipasswd hostname
+
+*****************************************************************************/
+
+#include <ESP8266WiFi.h>       // ESP8266用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
+#include <ESP8266HTTPClient.h> // HTTP通信を行うためのライブラリ。APIからデータを取得したり、サーバーにデータを送信する際に使用します。
+#include <WiFiClientSecure.h>  // HTTPS通信を行うためのライブラリ。セキュアな接続を確立し、暗号化されたデータを送受信するために使用します。
+#include <ArduinoJson.h>       // JSON形式のデータを作成・解析するためのライブラリ。API通信やデータの保存に役立ちます。
+#include <LiquidCrystal_I2C.h> // I2C接続のLCDディスプレイを制御するためのライブラリ。センサーデータやステータス情報を表示する際に使用します。
 
 //----------------------------------------------------------------------------
 // 定数と変数の定義
@@ -25,50 +28,50 @@
 // WiFi SSIDとパスワード、ホスト名を指定
 const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
-const char* hostname = "HOSTNAME"  ; // ESP-01のホスト名
-
-//
-LiquidCrystal_I2C lcd(0x27, 16, 2);
-
-//----------------------------------------------------------------------------
-//
-//----------------------------------------------------------------------------
 
 //
 const char* tickerNikkei   = "^N225";
 const char* tickerExchange = "USDJPY=X";
 
-ESP8266WebServer server(80);
+//
+// [ESP8266] <---> [LCD]
+// 3.3V <--------> VCC
+// GND <---------> GND
+// GPIO 4 (D2) <-> SDA
+// GPIO 5 (D1) <-> SCL
 
 //
-unsigned long previousMillis = 0;
-const long interval = 1000 * 60 * 60; //１時間ごとに更新
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1 * 60 * 60; //１時間ごとに更新
 
 //
 float nikkeiAverage = 0;
 float exchangeRate  = 0;
 
 //----------------------------------------------------------------------------
-//
+// 初期実行
 //----------------------------------------------------------------------------
 void setup() {
 
+  // シリアル通信を115200ボーで開始(picocom -b 115200 /dev/ttyUSB0)
   Serial.begin(115200);
 
   lcd.init();
   lcd.begin(16, 2); // 16カラム、2行のLCDディスプレイの場合
   lcd.backlight();
+
+  // 起動画面の表示
+  showStartupScreen();
+
+  // WiFi接続
   lcd.setCursor(0, 0);
   lcd.print("WiFi Connecting...");
-
   connectToWiFi();
   lcd.setCursor(0, 0);
   lcd.clear();
   lcd.print("WiFi Connected");
-
-  server.on("/", handleRoot);
-  server.begin();
-  Serial.println("HTTP server started");
 
   //
   fetchAndDisplayData();
@@ -76,27 +79,19 @@ void setup() {
 }
 
 //----------------------------------------------------------------------------
-//
+// ループ処理
 //----------------------------------------------------------------------------
 void loop() {
 
-  //
-  server.handleClient();
-
-  //
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;
-    fetchAndDisplayData();
-  }
+  // タスク処理
+  fetchAndShowDataTask();
 
 }
-
 
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen(){
+void showStartupScreen() {
 
   // figlet ESP8266
   Serial.println("");
@@ -152,7 +147,6 @@ void showStartupScreen(){
 //----------------------------------------------------------------------------
 void connectToWiFi() {
 
-  WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
 
   Serial.print("Connected to ");
@@ -164,22 +158,10 @@ void connectToWiFi() {
     Serial.print(".");
   }
 
-  // mDNSサービスの開始
-  Serial.println("");
-  if (MDNS.begin(hostname)) {
-    Serial.println("mDNS responder started");
-  } else {
-    Serial.println("Error setting up mDNS responder!");
-  }
-
+  Serial.println();
   Serial.println("===============================================");
   Serial.println("              Network Details                  ");
   Serial.println("===============================================");
-  Serial.print("WebServer    : http://");
-  Serial.println(WiFi.localIP());
-  Serial.print("Hostname     : http://");
-  Serial.print(hostname);
-  Serial.println(".local");
   Serial.print("IP address   : ");
   Serial.println(WiFi.localIP());
   Serial.print("Subnet Mask  : ");
@@ -199,44 +181,24 @@ void connectToWiFi() {
 // 株価の取得関数
 //----------------------------------------------------------------------------
 
-// URLエンコード関数
-String urlEncode(String str) {
-
-  String encodedString = "";
-
-  char c;
-  char buf[3];
-  for (int i = 0; i < str.length(); i++) {
-    c = str.charAt(i);
-
-    // URLで使用できない文字をエンコードする
-    if (isalnum(c)) {
-      encodedString += c;  // 英数字はそのまま
-    } else {
-      sprintf(buf, "%%%02X", c);  // %XXの形式でエンコード
-      encodedString += buf;
-    }
-
-  }
-
-  return encodedString;
-
-}
-
 // api から取得
 float fetchPrice(String ticker) {
 
   float price = 0;
 
+  //
   Serial.print("Start fetch ");
-  Serial.println(ticker);
+  Serial.print(ticker);
+  Serial.print(" => ");
 
+  //
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Start fetch ");
   lcd.setCursor(0, 1);
   lcd.print(ticker);
 
+  //
   WiFiClientSecure client;
   client.setInsecure();  // セキュリティ証明書の検証を無効化
 
@@ -251,7 +213,6 @@ float fetchPrice(String ticker) {
   client.print("GET /v8/finance/chart/");
   client.print( urlEncode( ticker ) );
   client.println("?interval=1d HTTP/1.1");
-
   client.println("Host: query1.finance.yahoo.com");
   client.println("Accept: application/json");
   client.println("Accept-Language: ja;q=0.7");
@@ -306,23 +267,33 @@ float fetchPrice(String ticker) {
 
 }
 
-//----------------------------------------------------------------------------
-// LCDにデータと変動率を表示する関数
-//----------------------------------------------------------------------------
+// URLエンコード関数
+String urlEncode(String str) {
 
-//
-void fetchAndDisplayData() {
+  String encodedString = "";
 
-  if (WiFi.status() == WL_CONNECTED) {
+  char c;
+  char buf[3];
+  for (int i = 0; i < str.length(); i++) {
+    c = str.charAt(i);
 
-    //
-    nikkeiAverage = fetchPrice(tickerNikkei);
-    exchangeRate  = fetchPrice(tickerExchange);
-    displayData(nikkeiAverage, exchangeRate);
+    // URLで使用できない文字をエンコードする
+    if (isalnum(c)) {
+      encodedString += c;  // 英数字はそのまま
+    } else {
+      sprintf(buf, "%%%02X", c);  // %XXの形式でエンコード
+      encodedString += buf;
+    }
 
   }
 
+  return encodedString;
+
 }
+
+//----------------------------------------------------------------------------
+// LCD表示
+//----------------------------------------------------------------------------
 
 //
 void displayData(float nikkei, float exchange) {
@@ -340,35 +311,57 @@ void displayData(float nikkei, float exchange) {
 
 }
 
-//----------------------------------------------------------------------------
-// ルートパス処理関数 (WebアクセスでJSONを返す)
-//----------------------------------------------------------------------------
-void handleRoot() {
-
-  String jsonResponse = getMarketDataJson();
+//
+void fetchAndDisplayData() {
 
   //
-  server.send(200, "application/json", jsonResponse);
-  Serial.println(jsonResponse);
+  nikkeiAverage = fetchPrice(tickerNikkei);
+  exchangeRate  = fetchPrice(tickerExchange);
+  displayData(nikkeiAverage, exchangeRate);
+
+  //
+  Serial.println(createJson());
 
 }
 
 //----------------------------------------------------------------------------
-// 日経平均株価と為替レートのデータをJSON形式で取得する関数
+// 取得されるデータをJSON形式で生成
 //----------------------------------------------------------------------------
-String getMarketDataJson() {
+String createJson() {
 
   //
-  StaticJsonDocument<200> jsonDoc;
-  jsonDoc["nikkei"]    = nikkeiAverage;
-  jsonDoc["usd_jpy"]   = exchangeRate;
-  jsonDoc["hostname"]  = WiFi.hostname();
-  jsonDoc["ipaddress"] = WiFi.localIP().toString();
+  StaticJsonDocument<200> doc;
 
   //
-  String jsonResponse;
-  serializeJson(jsonDoc, jsonResponse);
+  doc["nikkei"]    = nikkeiAverage;
+  doc["usd_jpy"]   = exchangeRate;
 
-  return jsonResponse;
+  //
+  doc["status"]    = 1;                         // ステータス (正常の場合は1)
+  doc["message"]   = "正常に取得できました。";      // メッセージ (データ取得が成功したことを示す)
+  doc["ipaddress"] = WiFi.localIP().toString(); // IPアドレス (デバイスのネットワークアドレス)
+
+  // JSONデータを文字列にシリアライズ
+  String json;
+  serializeJson(doc, json);
+
+  return json;
+
+}
+
+//----------------------------------------------------------------------------
+// タスク処理
+//----------------------------------------------------------------------------
+
+// 1秒ごとに情報を表示する関数
+void fetchAndShowDataTask() {
+
+  static unsigned long lastTaskMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
+    lastTaskMillis = currentMillis;
+    fetchAndDisplayData();
+  }
 
 }
