@@ -40,7 +40,7 @@ const char* tickerExchange = "USDJPY=X";
 // GPIO 4 (D2) <-> SDA
 // GPIO 5 (D1) <-> SCL
 
-//
+// LCD初期化（I2Cアドレスは通常0x27または0x3F）
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // タスクを繰り返し実行する間隔（秒）
