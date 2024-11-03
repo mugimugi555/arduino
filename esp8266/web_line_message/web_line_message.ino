@@ -37,16 +37,22 @@ const char* channelAccessToken = "CHANNELACCESSTOKEN"; // LINE Develop -> プロ
 
 #define PIR_PIN 5  // PIRセンサーのピン
 
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 10;
+
 //----------------------------------------------------------------------------
 // 初期実行
 //----------------------------------------------------------------------------
 void setup() {
 
+  // シリアル通信を115200ボーで開始(picocom -b 115200 /dev/ttyUSB0)
   Serial.begin(115200);
-  pinMode(PIR_PIN, INPUT);
 
   //
-  showSplash();
+  pinMode(PIR_PIN, INPUT);
+
+  // 起動画面の表示
+  showStartup();
 
   // WiFi接続
   connectToWiFi();
@@ -58,19 +64,18 @@ void setup() {
 //----------------------------------------------------------------------------
 void loop() {
 
-  //
-  int pirState = digitalRead(PIR_PIN);
-  if (pirState == HIGH) {
-    sendMessage("人を検知しました！");
-    delay(10000);  // 10秒間は再送信しない
-  }
+  // タスク処理
+  fetchAndShowTask();
+
+  // ホスト名の更新
+  updateMdnsTask();
 
 }
 
 //----------------------------------------------------------------------------
-// スプラッシュ画面の表示
+// 起動画面の表示
 //----------------------------------------------------------------------------
-void showSplash(){
+void showStartup() {
 
   // figlet ESP8266
   Serial.println("");
@@ -83,6 +88,40 @@ void showSplash(){
   Serial.println("  |_____|____/|_|   \\___/_____|\\___/ \\___/ ");
   Serial.println("");
   Serial.println("===============================================");
+
+  // ボード名を表示
+  Serial.print("Board         : ");
+  Serial.println(ARDUINO_BOARD);
+
+  // CPUの周波数を表示
+  Serial.print("CPU Frequency : ");
+  Serial.print(ESP.getCpuFreqMHz());
+  Serial.println(" MHz");
+
+  // フラッシュサイズを表示
+  Serial.print("Flash Size    : ");
+  Serial.print(ESP.getFlashChipSize() / 1024);
+  Serial.println(" KB");
+
+  // 空きヒープメモリを表示
+  Serial.print("Free Heap     : ");
+  Serial.print(ESP.getFreeHeap());
+  Serial.println(" B");
+
+  // フラッシュ速度を取得
+  Serial.print("Flash Speed   : ");
+  Serial.print(ESP.getFlashChipSpeed() / 1000000);
+  Serial.println(" MHz");
+
+  // チップIDを取得
+  Serial.print("Chip ID       : ");
+  Serial.println(ESP.getChipId());
+
+  // SDKバージョンを取得
+  Serial.print("SDK Version   : ");
+  Serial.println(ESP.getSdkVersion());
+
+  Serial.println("===============================================");
   Serial.println("");
 
 }
@@ -94,6 +133,9 @@ void connectToWiFi() {
 
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
+
+  Serial.print("Connected to ");
+  Serial.println(ssid);
 
   // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
@@ -109,11 +151,14 @@ void connectToWiFi() {
     Serial.println("Error setting up mDNS responder!");
   }
 
-  Serial.print("Connected to ");
-  Serial.println(ssid);
   Serial.println("===============================================");
   Serial.println("              Network Details                  ");
   Serial.println("===============================================");
+  Serial.print("WebServer    : http://");
+  Serial.println(WiFi.localIP());
+  Serial.print("Hostname     : http://");
+  Serial.print(hostname);
+  Serial.println(".local");
   Serial.print("IP address   : ");
   Serial.println(WiFi.localIP());
   Serial.print("Subnet Mask  : ");
@@ -132,19 +177,20 @@ void connectToWiFi() {
 //----------------------------------------------------------------------------
 // LINE API送信関係
 //----------------------------------------------------------------------------
-
-//
 String createJson(String message) {
 
   // JSONオブジェクトの作成
   StaticJsonDocument<200> doc; // ドキュメントのサイズは適宜変更
+
   doc["to"] = providerUserId;
+
   JsonArray messages = doc.createNestedArray("messages");
   JsonObject messageObj = messages.createNestedObject();
+
   messageObj["type"] = "text";
   messageObj["text"] = message;
 
-  // JSON文字列にシリアライズ
+  // JSONデータを文字列にシリアライズ
   String json;
   serializeJson(doc, json);
 
@@ -181,6 +227,44 @@ void sendMessage(String message) {
     http.end(); // 終了処理
   } else {
     Serial.println("WiFi not connected");
+  }
+
+}
+
+//----------------------------------------------------------------------------
+// タスク処理
+//----------------------------------------------------------------------------
+
+// 10秒ごとに情報を表示する関数
+void fetchAndShowTask() {
+
+  int pirState = digitalRead(PIR_PIN);
+
+  //
+  static unsigned long lastTaskMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
+
+    if (pirState == HIGH) {
+      sendMessage("人を検知しました！");
+    }
+
+    lastTaskMillis = currentMillis;
+
+  }
+
+}
+
+// 0.5秒ごとにホスト名を更新する関数
+void updateMdnsTask() {
+
+  static unsigned long lastMdnsMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastMdnsMillis >= 500) {
+    lastMdnsMillis = currentMillis;
+    MDNS.update();
   }
 
 }
