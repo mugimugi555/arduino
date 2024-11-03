@@ -234,6 +234,12 @@ String createJson() {
                 (gps.time.second() < 10 ? "0" : "") + String(gps.time.second());
   doc["datetime"] = date + " " + time;
 
+  //
+  doc["status"]    = 1;                         // ステータス (正常の場合は1)
+  doc["message"]   = "正常に取得できました。";      // メッセージ (データ取得が成功したことを示す)
+  doc["hostname"]  = hostname;                  // ホスト名 (デバイスの名前)
+  doc["ipaddress"] = WiFi.localIP().toString(); // IPアドレス (デバイスのネットワークアドレス)
+
   // JSONデータを文字列にシリアライズ
   String json;
   serializeJson(doc, json);
