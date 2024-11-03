@@ -341,6 +341,10 @@ String sendApiRequest() {
       deserializeJson(doc, jsonResponse);
       //serializeJsonPretty(doc, Serial); // フォーマットされたJSONを出力
 
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Fetch-API:Done OK");
+
       //
       printLCD();
 
@@ -352,10 +356,6 @@ String sendApiRequest() {
     }
 
     http.end(); // リソースを解放
-
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Fetch-API:Done");
 
   } else {
 
