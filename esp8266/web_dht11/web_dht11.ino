@@ -52,6 +52,9 @@ void setup() {
   // シリアル通信を115200ボーで開始(picocom -b 115200 /dev/ttyUSB0)
   Serial.begin(115200);
 
+  // DHTセンサーの初期化
+  dht.begin();
+
   // 起動画面の表示
   showStartup();
 

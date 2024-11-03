@@ -68,11 +68,11 @@ void setup() {
   // 起動画面の表示
   showStartup();
 
-  // WiFi接続
-  connectToWiFi();
-
   // 温湿度センサーの開始
   dht.begin();
+
+  // WiFi接続
+  connectToWiFi();
 
   // NTPクライアントの開始
   timeClient.begin();
