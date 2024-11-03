@@ -508,7 +508,13 @@ void fetchAndShowTask() {
 
   if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
     lastTaskMillis = currentMillis;
+
+    // 古いデータの削除
+    deleteOldData();
+
+    // データーの取得と表示
     Serial.println(readAndSaveSensorData());
+
   }
 
 }
