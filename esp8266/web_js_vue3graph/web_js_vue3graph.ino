@@ -46,7 +46,7 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 //----------------------------------------------------------------------------
-// HTMLコンテンツ（Vanilla(素の) JavaScriptを使用）
+// HTMLコンテンツ（VUE3を使用）
 //----------------------------------------------------------------------------
 const char htmlPage[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>

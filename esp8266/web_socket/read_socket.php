@@ -1,6 +1,6 @@
 <?php
 $host = 'esp8266.local'; // ESP8266のホスト名またはIPアドレス
-$port = 12345; // ESP8266のリスニングポート番号
+$port = 80; // ESP8266のリスニングポート番号
 
 // ソケットを作成
 $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
