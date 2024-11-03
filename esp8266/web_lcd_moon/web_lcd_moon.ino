@@ -9,6 +9,7 @@ arduino-cli lib install "ESP8266WiFi"        # ESP8266ボード用のWiFi機能�
 arduino-cli lib install "ESP8266mDNS"        # mDNS（マルチキャストDNS）を使用して、ESP8266デバイスをネットワークで簡単に見つけられるようにするライブラリ。
 arduino-cli lib install "ESPAsyncTCP"        # ESP8266用の非同期TCP通信を提供するライブラリ。非同期的に複数のクライアントと接続するために使用します。
 arduino-cli lib install "ArduinoJson"        # JSON形式のデータを簡単に作成、解析するためのライブラリ
+arduino-cli lib install "DHT sensor library" # DHT11やDHT22温湿度センサー用のライブラリ
 
 # コンパイルとアップロード例
 bash upload_esp8266_web.sh web_ntp/web_ntp.ino wifissid wifipasswd hostname
@@ -16,39 +17,131 @@ bash upload_esp8266_web.sh web_ntp/web_ntp.ino wifissid wifipasswd hostname
 *****************************************************************************/
 
 #include <ESP8266WiFi.h>       // ESP8266用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
-#include <WiFiClient.h>
+#include <ESP8266mDNS.h>       // mDNS（マルチキャストDNS）を使用するためのライブラリ。デバイスをネットワークで簡単に発見できるようにします。
+#include <ESPAsyncWebServer.h> // ESP8266用の非同期Webサーバーライブラリ。HTTPリクエストの処理を非同期で行い、複数のクライアントからのリクエストに同時に対応できるようにします。
+#include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>       // JSON形式のデータを作成・解析するためのライブラリ。API通信やデータの保存に役立ちます。
-#include <LiquidCrystal_I2C.h> // I2C接続のLCDディスプレイを制御するためのライブラリ。センサーデータやステータス情報を表示する際に使用します。
+#include <LiquidCrystal_I2C.h>
 
 // WiFi SSIDとパスワードをホスト名を指定
 const char* ssid     = "WIFISSID"  ; // 自分のWi-Fi SSIDに置き換える
 const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き換える
+const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.local/ でアクセスできるようになります。
 
-//
-// [ESP8266] <---> [LCD]
-// 3.3V <--------> VCC
-// GND <---------> GND
-// GPIO 4 (D2) <-> SDA
-// GPIO 5 (D1) <-> SCL
+// 緯度、経度、APIキーを変数として定義
+const char* latitude  = "35.6895";  // 東京
+const char* longitude = "139.6917"; //
+const char* apiKey    = "API_KEY";  //
 
-// LCD初期化（I2Cアドレスは通常0x27または0x3F）
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+// LCD1602のアドレスとサイズを指定（例：0x27, 20x4）
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+// 🌑🌒🌓🌔🌕🌖🌗🌘
+
+// New Moon 🌑
+byte newMoon[8] = {
+    0b00000,
+    0b01110,
+    0b11111,
+    0b11111,
+    0b11111,
+    0b11111,
+    0b01110,
+    0b00000
+};
+
+// Waxing Crescent 🌒
+byte waxingCrescent[8] = {
+    0b00000,
+    0b01110,
+    0b11111,
+    0b11111,
+    0b11101,
+    0b11100,
+    0b01100,
+    0b00000
+};
+
+// First Quarter 🌓
+byte firstQuarter[8] = {
+    0b00000,
+    0b01110,
+    0b11111,
+    0b11111,
+    0b11100,
+    0b11100,
+    0b01100,
+    0b00000
+};
+
+// Waxing Gibbous 🌔
+byte waxingGibbous[8] = {
+    0b00000,
+    0b01110,
+    0b11111,
+    0b11111,
+    0b11110,
+    0b11111,
+    0b01110,
+    0b00000
+};
+
+// Full Moon 🌕
+byte fullMoon[8] = {
+    0b00000,
+    0b01110,
+    0b11111,
+    0b11111,
+    0b11111,
+    0b11111,
+    0b01110,
+    0b00000
+};
+
+// Waning Gibbous 🌖
+byte waningGibbous[8] = {
+    0b00000,
+    0b01110,
+    0b11111,
+    0b01111,
+    0b00111,
+    0b00111,
+    0b01110,
+    0b00000
+};
+
+// Last Quarter 🌗
+byte lastQuarter[8] = {
+    0b00000,
+    0b01110,
+    0b11111,
+    0b01111,
+    0b00111,
+    0b00111,
+    0b01110,
+    0b00000
+};
+
+// Waning Crescent 🌘
+byte waningCrescent[8] = {
+    0b00000,
+    0b01110,
+    0b11111,
+    0b01111,
+    0b00111,
+    0b00011,
+    0b01110,
+    0b00000
+};
 
 // タスクを繰り返し実行する間隔（秒）
-const long taskInterval = 24 * 60 * 60; // １日
+const long taskInterval = 12 * 60 * 60; // 12時間
 
-// Open-Meteo APIのURL
-const char* apiUrl = "https://api.open-meteo.com/v3/forecast?latitude=35.682839&longitude=139.759455&daily=moon_phase&timezone=Asia/Tokyo";
+// ポート80で非同期Webサーバーを初期化
+AsyncWebServer server(80);
 
-// カスタムキャラクターのデータ
-byte newMoon[8]     = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // 新月
-byte crescentMoon[8] = {0x00, 0x04, 0x0C, 0x1C, 0x1C, 0x0C, 0x04, 0x00}; // 三日月
-byte firstQuarter[8] = {0x1F, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1F}; // 上弦の月
-byte fullMoon[8]     = {0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F}; // 満月
-byte lastQuarter[8]  = {0x1F, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1F}; // 下弦の月
-byte waningGibbous[8]= {0x1F, 0x1F, 0x1F, 0x1E, 0x1E, 0x1F, 0x1F, 0x1F}; // 欠け始めた満月
-byte waxingGibbous[8]= {0x1F, 0x1F, 0x1F, 0x1E, 0x1E, 0x1F, 0x1F, 0x1F}; // 満月に近い状態
-byte waningCrescent[8] = {0x00, 0x04, 0x06, 0x07, 0x07, 0x06, 0x04, 0x00}; // 欠ける三日月
+//
+String jsonResponse;
 
 //----------------------------------------------------------------------------
 // 初期実行
@@ -58,17 +151,31 @@ void setup() {
   // シリアル通信を115200ボーで開始(picocom -b 115200 /dev/ttyUSB0)
   Serial.begin(115200);
 
-  //
-  setupLCD();
+  // LCD初期化
+  lcd.init();
+  lcd.begin(16, 2);
+  lcd.backlight();
 
   // 起動画面の表示
   showStartup();
 
   // WiFi接続
-  connectToWiFi();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("WiFi Connecting...");
+  lcd.setCursor(0, 1);
+  lcd.print(ssid);
 
-  // 月相情報を取得して表示
-  fetchMoonPhase();
+  connectToWiFi();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("WiFi Connected");
+
+  // Webサーバーの開始
+  setupWebServer();
+
+  // APIリクエストを送信
+  sendApiRequest();
 
 }
 
@@ -80,22 +187,8 @@ void loop() {
   // タスク処理
   fetchAndShowTask();
 
-}
-
-void setupLCD() {
-
-  lcd.init(); // LCD初期化
-  lcd.backlight(); // バックライトをオンに
-
-  // カスタムキャラクターの登録
-  lcd.createChar(0, newMoon);
-  lcd.createChar(1, crescentMoon);
-  lcd.createChar(2, firstQuarter);
-  lcd.createChar(3, fullMoon);
-  lcd.createChar(4, lastQuarter);
-  lcd.createChar(5, waningGibbous);
-  lcd.createChar(6, waxingGibbous);
-  lcd.createChar(7, waningCrescent);
+  // ホスト名の更新
+  updateMdnsTask();
 
 }
 
@@ -158,15 +251,11 @@ void showStartup() {
 //----------------------------------------------------------------------------
 void connectToWiFi() {
 
+  WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
 
   Serial.print("Connected to ");
   Serial.println(ssid);
-
-  lcd.setCursor(0, 0);
-  lcd.print("WiFi Connecting...");
-  lcd.setCursor(0, 1);
-  lcd.print(ssid);
 
   // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
@@ -174,15 +263,22 @@ void connectToWiFi() {
     Serial.print(".");
   }
 
-  lcd.setCursor(0, 0);
-  lcd.clear();
-  lcd.print("WiFi Connected");
+  // mDNSサービスの開始
+  Serial.println("");
+  if (MDNS.begin(hostname)) {
+    Serial.println("mDNS responder started");
+  } else {
+    Serial.println("Error setting up mDNS responder!");
+  }
 
-
-  Serial.println();
   Serial.println("===============================================");
   Serial.println("              Network Details                  ");
   Serial.println("===============================================");
+  Serial.print("WebServer    : http://");
+  Serial.println(WiFi.localIP());
+  Serial.print("Hostname     : http://");
+  Serial.print(hostname);
+  Serial.println(".local");
   Serial.print("IP address   : ");
   Serial.println(WiFi.localIP());
   Serial.print("Subnet Mask  : ");
@@ -199,127 +295,136 @@ void connectToWiFi() {
 }
 
 //----------------------------------------------------------------------------
-// 月の取得と表示
+// Webサーバーの設定
 //----------------------------------------------------------------------------
-void fetchMoonPhase() {
+void setupWebServer() {
 
-  WiFiClient client;
+  // Webサーバーのハンドラを設定
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "application/json", jsonResponse); // JSONレスポンスを返す
+  });
 
-  if (client.connect("api.open-meteo.com", 443)) {
+  // サーバーを開始
+  server.begin();
 
-    // APIリクエストの送信
-    client.print(
-      String("GET ") + apiUrl +
-      " HTTP/1.1\r\n" +
-      "Host: api.open-meteo.com\r\n" +
-      "Connection: close\r\n\r\n"
-    );
+}
 
-    // レスポンスの読み込み
-    String response = "";
-    while (client.connected() || client.available()) {
-      if (client.available()) {
-        response += client.readString();
-      }
-    }
-    client.stop();
-    Serial.println(response);
+// APIリクエストを行い、結果をjsonResponseに格納する関数
+String sendApiRequest() {
 
-    // JSON解析
-    DynamicJsonDocument docApi(1024);
-    deserializeJson(docApi, response);
+  if (WiFi.status() == WL_CONNECTED) {
 
-    // 月相情報の取得
-    const char* phase = docApi["daily"]["moon_phase"][0]; // 現在の月相
-    int age = docApi["daily"]["moon_phase"][1]; // 月齢（数値での計算を要する）
+    //
+    WiFiClientSecure client;
+    client.setInsecure();  // セキュリティ証明書の検証を無効化
 
-    /*
-    switch (phase) {
-      case 0:
-        lcd.write(byte(0)); // 新月
-        lcd.print(" New Moon");
-        break;
-      case 1:
-        lcd.write(byte(1)); // 三日月
-        lcd.print(" Crescent");
-        break;
-      case 2:
-        lcd.write(byte(2)); // 上弦の月
-        lcd.print(" First Qtr");
-        break;
-      case 3:
-        lcd.write(byte(3)); // 満月
-        lcd.print(" Full Moon");
-        break;
-      case 4:
-        lcd.write(byte(4)); // 下弦の月
-        lcd.print(" Last Qtr");
-        break;
-      case 5:
-        lcd.write(byte(5)); // 欠け始めた満月
-        lcd.print(" Waning Gib");
-        break;
-      case 6:
-        lcd.write(byte(6)); // 満月に近い状態
-        lcd.print(" Waxing Gib");
-        break;
-      case 7:
-        lcd.write(byte(7)); // 欠ける三日月
-        lcd.print(" Waning Cres");
-        break;
-      default:
-        lcd.print("Unknown Phase");
-        break;
-    }
-    */
+    HTTPClient http;
 
-    // 月相のパーセント計算
-    int percentage = (age / 29.53) * 100; // 月の満ち欠け周期は約29.53日
-    int daysUntilFullMoon = 14 - age; // 満月までの日数計算
-
-    // LCDに表示
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("phase:");
-    lcd.print(phase);
-    lcd.setCursor(0, 1);
-    lcd.print("age:");
-    lcd.print(daysUntilFullMoon);
-    lcd.print("day");
+    lcd.print("Fetch-API:Start...");
 
-    // プログレスバーの表示
-    lcd.setCursor(0, 1);
-    lcd.print("at");
-    int barLength = map(percentage, 0, 100, 0, 16); // 16文字分のバー
-    for (int i = 0; i < 16; i++) {
-      if (i < barLength) {
-        lcd.write(0xFF); // プログレスバーを表示（フルブロック）
-      } else {
-        lcd.print(" "); // 空白
-      }
+    String url = "https://moon-phase.p.rapidapi.com/advanced?lat=" + String(latitude) + "&lon=" + String(longitude);
+    http.begin(client, url); // WiFiClientを引数に渡す
+    http.addHeader("x-rapidapi-host", "moon-phase.p.rapidapi.com");
+    http.addHeader("x-rapidapi-key", apiKey);
+
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode > 0) {
+
+      jsonResponse = http.getString(); // レスポンスを格納
+      Serial.println(jsonResponse);
+
+      // ArduinoJsonを使ってシリアルにJSONを出力
+      DynamicJsonDocument doc(1024);
+      deserializeJson(doc, jsonResponse);
+      //serializeJsonPretty(doc, Serial); // フォーマットされたJSONを出力
+
+      //
+      printLCD();
+
+    } else {
+
+      jsonResponse = "{\"error\":\"Error on HTTP request: " + String(httpResponseCode) + "\"}";
+      Serial.println(jsonResponse); // エラーメッセージを出力
+
     }
 
-    // パーセンテージを表示
-    lcd.setCursor(0, 1);
-    lcd.print(percentage);
-    lcd.print("%");
+    http.end(); // リソースを解放
 
-    StaticJsonDocument<256> doc;
-    doc["moon_phase"] = phase;
-    doc["moon_age"] = age;
-    doc["days_until_full_moon"] = daysUntilFullMoon;
-    doc["moon_visibility_percentage"] = percentage;
-
-    // JSONデータを文字列にシリアライズ
-    String json;
-    serializeJson(doc, json);
-    Serial.println(json);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Fetch-API:Done");
 
   } else {
 
-    Serial.println("Connection failed");
+    jsonResponse = "{\"error\":\"WiFi not connected\"}";
+    Serial.println(jsonResponse); // WiFi未接続のメッセージを出力
 
   }
+
+  return jsonResponse;
+
+}
+
+//
+void printLCD() {
+
+  lcd.clear();
+
+  // JSONデータを解析
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, jsonResponse);
+
+  // 月相名に基づいてカスタムキャラクターを選択
+  String phase_name = doc["moon"]["phase_name"];
+  if (phase_name == "New Moon") {
+    lcd.createChar(0, newMoon);
+  } else if (phase_name == "Waxing Crescent") {
+    lcd.createChar(0, waxingCrescent);
+  } else if (phase_name == "First Quarter") {
+    lcd.createChar(0, firstQuarter);
+  } else if (phase_name == "Waxing Gibbous") {
+    lcd.createChar(0, waxingGibbous);
+  } else if (phase_name == "Full Moon") {
+    lcd.createChar(0, fullMoon);
+  } else if (phase_name == "Waning Gibbous") {
+    lcd.createChar(0, waningGibbous);
+  } else if (phase_name == "Last Quarter") {
+    lcd.createChar(0, lastQuarter);
+  } else if (phase_name == "Waning Crescent") {
+    lcd.createChar(0, waningCrescent);
+  }
+
+  // カスタムキャラクターをLCDに作成して描画
+  lcd.setCursor(0, 0);  // カスタムキャラクターの位置を明示的に設定
+  lcd.write(byte(0)); // カスタムキャラクターを表示
+
+  //
+  lcd.setCursor(1, 0);
+  lcd.print(phase_name);
+  Serial.print("MoonParseName:");
+  Serial.println(phase_name);
+
+  //
+  int age = doc["moon"]["age_days"];
+  lcd.setCursor(0, 1);
+  lcd.print("Age:");
+  lcd.print(age);
+  lcd.print("Day");
+  Serial.print("MoonAge:");
+  Serial.println(age);
+
+  //
+  float phase = doc["moon"]["phase"];
+  int phasePercentage = static_cast<int>(phase * 100); // 整数値に変換
+  lcd.print("(");
+  lcd.print(phasePercentage);
+  lcd.print("%)");
+  Serial.print("MoonParse:");
+  Serial.print(phasePercentage);
+  Serial.println("%");
 
 }
 
@@ -327,7 +432,7 @@ void fetchMoonPhase() {
 // タスク処理
 //----------------------------------------------------------------------------
 
-// 1秒ごとに情報を表示する関数
+// taskInterval 秒ごとに情報を表示する関数
 void fetchAndShowTask() {
 
   static unsigned long lastTaskMillis = 0;
@@ -335,7 +440,148 @@ void fetchAndShowTask() {
 
   if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
     lastTaskMillis = currentMillis;
-    fetchMoonPhase();
+    Serial.println(sendApiRequest());
   }
 
 }
+
+// 0.5秒ごとにホスト名を更新する関数
+void updateMdnsTask() {
+
+  static unsigned long lastMdnsMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastMdnsMillis >= 500) {
+    lastMdnsMillis = currentMillis;
+    MDNS.update();
+  }
+
+}
+
+//----------------------------------------------------------------------------
+// アニメーション（テスト）
+//----------------------------------------------------------------------------
+/*
+// 満月のビットパターン
+byte fullMoon[8] = {
+    0b00000,
+    0b11111,
+    0b11111,
+    0b11111,
+    0b11111,
+    0b11111,
+    0b11111,
+    0b00000
+};
+
+// 満月のビットパターンをシフト
+
+for (int i = 0; i < 5; i++) {
+  for (int j = 0; j < 8; j++) {
+    fullMoon[j] = (fullMoon[j] << 1) | (fullMoon[j] >> 7); // 左シフト
+  }
+  lcd.createChar(0, fullMoon );
+  lcd.setCursor(0, 0);
+  lcd.write(byte(0)); // カスタムキャラクターを表示
+  delay(1000);                   // 表示を見やすくするための遅延
+}
+
+// フェードインエフェクト
+void fadeIn() {
+  for (int i = 0; i <= 8; i++) {
+    lcd.createChar(0, getFadeChar(i));
+    lcd.setCursor(0, 0);
+    lcd.write(byte(0));
+    delay(300);
+  }
+}
+
+// スライドインエフェクト
+void slideIn() {
+  for (int pos = 16; pos >= 0; pos--) {
+    lcd.setCursor(pos, 0);
+    lcd.write(byte(0));
+    delay(100);
+  }
+}
+
+// 点滅エフェクト
+void blink() {
+  for (int i = 0; i < 5; i++) {
+    lcd.setCursor(0, 0);
+    lcd.write(byte(0));
+    delay(500);
+    lcd.setCursor(0, 0);
+    lcd.write(' ');  // クリア
+    delay(500);
+  }
+}
+
+// 輪郭描画エフェクト
+void drawOutline() {
+  byte outline[8] = {
+    0b00000000,
+    0b00111100,
+    0b01111110,
+    0b11111111,
+    0b00000000,
+    0b00000000,
+    0b00000000,
+    0b00000000
+  };
+
+  for (int i = 0; i < 5; i++) {
+    lcd.createChar(0, outline);
+    lcd.setCursor(0, 0);
+    lcd.write(byte(0));
+    delay(500);
+  }
+}
+
+// パルスエフェクト
+void pulse() {
+  for (int i = 0; i < 8; i++) {
+    lcd.createChar(0, getPulseChar(i));
+    lcd.setCursor(0, 0);
+    lcd.write(byte(0));
+    delay(300);
+  }
+}
+
+// フェードイン用のカスタムキャラクターを取得
+byte getFadeChar(int step) {
+  byte fadeChar[8] = {0};
+  for (int i = 0; i < 8; i++) {
+    fadeChar[i] = fullMoon[i] >> step; // シフト演算
+  }
+  return fadeChar;
+}
+
+// パルス用のカスタムキャラクターを取得
+byte getPulseChar(int step) {
+  byte pulseChar[8] = {0};
+  for (int i = 0; i < 8; i++) {
+    pulseChar[i] = fullMoon[i] ^ (1 << step); // パルス効果
+  }
+  return pulseChar;
+}
+
+void drawFullMoon() {
+    for (int i = 0; i < 4; i++) {
+        // 満月の内側からビットを描画
+        for (int j = 2; j < 6; j++) {
+            fullMoon[j] = fullMoon[j] | (1 << (i + 2)); // 中央から外側にビットを追加
+        }
+
+        lcd.createChar(0, fullMoon);
+        lcd.setCursor(0, 0);
+        lcd.write(byte(0)); // カスタムキャラクターを表示
+        delay(500);
+    }
+
+    // リセット
+    for (int j = 0; j < 8; j++) {
+        fullMoon[j] = 0b00000000; // カスタムキャラクターをクリア
+    }
+}
+*/

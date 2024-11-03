@@ -215,7 +215,7 @@ String createJson() {
 // タスク処理
 //----------------------------------------------------------------------------
 
-// 1秒ごとに情報を表示する関数
+// taskInterval 秒ごとに情報を表示する関数
 void fetchAndShowTask() {
 
   static unsigned long lastTaskMillis = 0;
