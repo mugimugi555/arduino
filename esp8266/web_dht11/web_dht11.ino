@@ -53,7 +53,7 @@ void setup() {
   Serial.begin(115200);
 
   // 起動画面の表示
-  showStartupScreen();
+  showStartup();
 
   // WiFi接続
   connectToWiFi();
@@ -69,7 +69,7 @@ void setup() {
 void loop() {
 
   // タスク処理
-  fetchAndShowDataTask();
+  fetchAndShowTask();
 
   // ホスト名の更新
   updateMdnsTask();
@@ -79,7 +79,7 @@ void loop() {
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen() {
+void showStartup() {
 
   // figlet ESP8266
   Serial.println("");
@@ -201,12 +201,12 @@ String createJson() {
 
   StaticJsonDocument<256> doc;
 
-  //
+  // センサーからのデータを取得
   float temperature     = dht.readTemperature();                // 温度
   float humidity        = dht.readHumidity();                   // 湿度
   float discomfortIndex = temperature + 0.36 * humidity + 41.2; // 不快指数の計算
 
-  //
+  // JSON形式に整形
   doc["temperature"]     = temperature;               // 温度 (摂氏)
   doc["humidity"]        = humidity;                  // 湿度 (%)
   doc["discomfortIndex"] = discomfortIndex;           // 不快指数 (相対的な快適さを示す指標)
@@ -228,7 +228,7 @@ String createJson() {
 //----------------------------------------------------------------------------
 
 // 1秒ごとに情報を表示する関数
-void fetchAndShowDataTask() {
+void fetchAndShowTask() {
 
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();

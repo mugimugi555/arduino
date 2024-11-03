@@ -21,7 +21,7 @@ void setup() {
   Serial.begin(115200);
 
   //
-  showStartupScreen();
+  showStartup();
 
   // WiFi接続
   connectToWiFi();
@@ -101,7 +101,7 @@ void loop() {
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen() {
+void showStartup() {
 
   // figlet ESP8266
   Serial.println("");

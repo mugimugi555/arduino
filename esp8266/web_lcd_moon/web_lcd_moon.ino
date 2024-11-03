@@ -62,7 +62,7 @@ void setup() {
   setupLCD();
 
   // 起動画面の表示
-  showStartupScreen();
+  showStartup();
 
   // WiFi接続
   connectToWiFi();
@@ -78,7 +78,7 @@ void setup() {
 void loop() {
 
   // タスク処理
-  fetchAndShowDataTask();
+  fetchAndShowTask();
 
 }
 
@@ -102,7 +102,7 @@ void setupLCD() {
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen() {
+void showStartup() {
 
   // figlet ESP8266
   Serial.println("");
@@ -328,7 +328,7 @@ void fetchMoonPhase() {
 //----------------------------------------------------------------------------
 
 // 1秒ごとに情報を表示する関数
-void fetchAndShowDataTask() {
+void fetchAndShowTask() {
 
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();

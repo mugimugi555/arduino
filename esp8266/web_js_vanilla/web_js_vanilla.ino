@@ -185,9 +185,9 @@ void setup() {
   Serial.begin(115200);
 
   // 起動画面の表示
-  showStartupScreen();
+  showStartup();
 
-  //
+  // 温湿度センサーの開始
   dht.begin();
 
   // WiFi接続
@@ -207,7 +207,7 @@ void loop() {
   ws.cleanupClients();
 
   // タスク処理
-  fetchAndShowDataTask();
+  fetchAndShowTask();
 
   // ホスト名の更新
   updateMdnsTask();
@@ -217,7 +217,7 @@ void loop() {
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen() {
+void showStartup() {
 
   // figlet ESP8266
   Serial.println("");
@@ -348,7 +348,7 @@ void setupWebServer() {
 //----------------------------------------------------------------------------
 
 // センサーのデータを取得し、JSONで出力
-void fetchAndShowDataTask() {
+void fetchAndShowTask() {
 
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();

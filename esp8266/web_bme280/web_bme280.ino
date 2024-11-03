@@ -55,7 +55,7 @@ void setup() {
   Serial.begin(115200);
   
   // 起動画面の表示
-  showStartupScreen();
+  showStartup();
 
   // BME280センサーの初期化
   if (!bme.begin(0x76)) {
@@ -90,7 +90,7 @@ void setup() {
 void loop() {
 
   // タスク処理
-  fetchAndShowDataTask();
+  fetchAndShowTask();
 
   // ホスト名の更新
   updateMdnsTask();
@@ -100,7 +100,7 @@ void loop() {
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen() {
+void showStartup() {
 
   // figlet ESP8266
   Serial.println("");
@@ -251,7 +251,7 @@ String createJson() {
 //----------------------------------------------------------------------------
 
 // 1秒ごとに情報を表示する関数
-void fetchAndShowDataTask() {
+void fetchAndShowTask() {
 
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();

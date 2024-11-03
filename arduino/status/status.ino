@@ -2,7 +2,7 @@
 
 void setup() {
     Serial.begin(115200);
-    showStartupScreen();
+    showStartup();
 }
 
 void loop() {
@@ -20,7 +20,7 @@ void loop() {
 //----------------------------------------------------------------------------
 // スプラッシュ画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen() {
+void showStartup() {
     Serial.println("");
     Serial.println("");
     Serial.println("===============================================");

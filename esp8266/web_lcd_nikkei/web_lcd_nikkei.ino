@@ -63,7 +63,7 @@ void setup() {
   lcd.backlight();
 
   // 起動画面の表示
-  showStartupScreen();
+  showStartup();
 
   // WiFi接続
   lcd.setCursor(0, 0);
@@ -84,14 +84,14 @@ void setup() {
 void loop() {
 
   // タスク処理
-  fetchAndShowDataTask();
+  fetchAndShowTask();
 
 }
 
 //----------------------------------------------------------------------------
 // 起動画面の表示
 //----------------------------------------------------------------------------
-void showStartupScreen() {
+void showStartup() {
 
   // figlet ESP8266
   Serial.println("");
@@ -354,7 +354,7 @@ String createJson() {
 //----------------------------------------------------------------------------
 
 // 1秒ごとに情報を表示する関数
-void fetchAndShowDataTask() {
+void fetchAndShowTask() {
 
   static unsigned long lastTaskMillis = 0;
   unsigned long currentMillis = millis();
