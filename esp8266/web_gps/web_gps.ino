@@ -7,7 +7,6 @@ arduino-cli core install esp8266:esp8266
 # このプログラムで必要なライブラリのインストール
 arduino-cli lib install "ESP8266WiFi"       # ESP8266ボード用のWiFi機能を提供するライブラリ
 arduino-cli lib install "ESP8266mDNS"       # mDNS（マルチキャストDNS）を使用して、ESP8266デバイスをネットワークで簡単に見つけられるようにするライブラリ
-arduino-cli lib install "ESP8266WebServer"  # ESP8266上でWebサーバー機能を実装するためのライブラリ
 arduino-cli lib install "ArduinoJson"       # JSON形式のデータを簡単に作成、解析するためのライブラリ
 arduino-cli lib install "TinyGPSPlus"       # GPSモジュールからの位置情報を扱うためのライブラリ
 
@@ -19,7 +18,7 @@ bash upload_esp8266_web.sh web_gps/web_gps.ino wifissid wifipasswd hostname
 //
 #include <ESP8266WiFi.h>       // ESP8266用のWiFi機能を提供するライブラリ。WiFi接続やアクセスポイントの作成に使用します。
 #include <ESP8266mDNS.h>       // mDNS（マルチキャストDNS）を使用するためのライブラリ。デバイスをネットワークで簡単に発見できるようにします。
-#include <ESP8266WebServer.h>  // ESP8266デバイスでWebサーバーを構築するためのライブラリ。HTTPリクエストの処理やWebページの提供が可能です。
+#include <ESPAsyncWebServer.h> // ESP8266用の非同期Webサーバーライブラリ。HTTPリクエストの処理を非同期で行い、複数のクライアントからのリクエストに同時に対応できるようにします。
 #include <ArduinoJson.h>       // JSON形式のデータを作成・解析するためのライブラリ。API通信やデータの保存に役立ちます。
 #include <SoftwareSerial.h>    // ソフトウェアシリアル通信を可能にするライブラリ。GPSモジュールなど、追加のシリアルポートが必要なデバイスに使用します。
 #include <TinyGPS++.h>         // GPSモジュールから位置情報を取得するためのライブラリ。緯度、経度、速度などの情報を簡単に扱えます。
@@ -30,7 +29,7 @@ const char* password = "WIFIPASSWD"; // 自分のWi-Fiパスワードに置き�
 const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.local/ でアクセスできるようになります。
 
 // センサーとの接続方法
-// E108 GN02Dセンサー       ESP8266
+// E108 GN02Dセンサー  ESP8266
 // VCC  <---------->  3.3V または 5V
 // GND  <---------->  GND
 // RX   <---------->  D5 (GPIO 14)  // ESP8266のTXと接続
@@ -39,30 +38,31 @@ const char* hostname = "HOSTNAME"  ; // ESP8266のホスト名 http://HOSTNAME.l
 TinyGPSPlus gps;
 SoftwareSerial ss(D1, D2);  // D1=RX, D2=TX
 
-// Webサーバー設定
-ESP8266WebServer server(80);
+// タスクを繰り返し実行する間隔（秒）
+const long taskInterval = 1;
+
+// ポート80で非同期Webサーバーを初期化
+AsyncWebServer server(80);
 
 //----------------------------------------------------------------------------
 // 初期実行
 //----------------------------------------------------------------------------
 void setup() {
 
+  // シリアル通信を115200ボーで開始(picocom -b 115200 /dev/ttyUSB0)
   Serial.begin(115200);
 
   // RXRTの通信をGPSモジュールのボーレートに合わせる
   ss.begin(9600);
 
-  //
-  showSplash();
+  // 起動画面の表示
+  showStartup();
 
   // WiFi接続
   connectToWiFi();
 
-  // ルートURLへのハンドラを設定
-  server.on("/", handleRoot);
-
   // Webサーバーの開始
-  server.begin();
+  setupWebServer();
 
 }
 
@@ -71,22 +71,16 @@ void setup() {
 //----------------------------------------------------------------------------
 void loop() {
 
+  // タスク処理
+  fetchAndShowTask();
+
+  // ホスト名の更新
+  updateMdnsTask();
+
   static unsigned long lastMillis = 0;
   unsigned long currentMillis = millis();
 
-  // 1秒ごとに情報を表示
-  if (currentMillis - lastMillis >= 1000) {
-    lastMillis = currentMillis;
-    Serial.println(createJson());
-  }
-
-  // クライアントリクエストを処理
-  server.handleClient();
-
-  // ホスト名の更新
-  MDNS.update();
-
-/*
+  /*
   // GPSデータの処理
   while (ss.available() > 0) {
     gps.encode(ss.read());
@@ -94,14 +88,14 @@ void loop() {
       sendGpsData();
     }
   }
-*/
+  */
 
 }
 
 //----------------------------------------------------------------------------
-// スプラッシュ画面の表示
+// 起動画面の表示
 //----------------------------------------------------------------------------
-void showSplash(){
+void showStartup() {
 
   // figlet ESP8266
   Serial.println("");
@@ -114,6 +108,40 @@ void showSplash(){
   Serial.println("  |_____|____/|_|   \\___/_____|\\___/ \\___/ ");
   Serial.println("");
   Serial.println("===============================================");
+
+  // ボード名を表示
+  Serial.print("Board         : ");
+  Serial.println(ARDUINO_BOARD);
+
+  // CPUの周波数を表示
+  Serial.print("CPU Frequency : ");
+  Serial.print(ESP.getCpuFreqMHz());
+  Serial.println(" MHz");
+
+  // フラッシュサイズを表示
+  Serial.print("Flash Size    : ");
+  Serial.print(ESP.getFlashChipSize() / 1024);
+  Serial.println(" KB");
+
+  // 空きヒープメモリを表示
+  Serial.print("Free Heap     : ");
+  Serial.print(ESP.getFreeHeap());
+  Serial.println(" B");
+
+  // フラッシュ速度を取得
+  Serial.print("Flash Speed   : ");
+  Serial.print(ESP.getFlashChipSpeed() / 1000000);
+  Serial.println(" MHz");
+
+  // チップIDを取得
+  Serial.print("Chip ID       : ");
+  Serial.println(ESP.getChipId());
+
+  // SDKバージョンを取得
+  Serial.print("SDK Version   : ");
+  Serial.println(ESP.getSdkVersion());
+
+  Serial.println("===============================================");
   Serial.println("");
 
 }
@@ -125,6 +153,9 @@ void connectToWiFi() {
 
   WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
+
+  Serial.print("Connected to ");
+  Serial.println(ssid);
 
   // WiFi接続が完了するまで待機
   while (WiFi.status() != WL_CONNECTED) {
@@ -140,8 +171,6 @@ void connectToWiFi() {
     Serial.println("Error setting up mDNS responder!");
   }
 
-  Serial.print("Connected to ");
-  Serial.println(ssid);
   Serial.println("===============================================");
   Serial.println("              Network Details                  ");
   Serial.println("===============================================");
@@ -166,15 +195,18 @@ void connectToWiFi() {
 }
 
 //----------------------------------------------------------------------------
-// Webサーバー系
+// Webサーバーの設定
 //----------------------------------------------------------------------------
+void setupWebServer() {
 
-// ルートURLにアクセスした際の処理
-void handleRoot() {
+  // ルートへのアクセス
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String jsonResponse = createJson();
+    request->send(200, "application/json", jsonResponse);
+  });
 
-  // HTTPレスポンスを送信
-  String jsonResponse = createJson();
-  server.send(200, "application/json", jsonResponse);
+  // Webサーバーを開始
+  server.begin();
 
 }
 
@@ -207,5 +239,35 @@ String createJson() {
   serializeJson(doc, json);
 
   return json;
+
+}
+
+//----------------------------------------------------------------------------
+// タスク処理
+//----------------------------------------------------------------------------
+
+// 1秒ごとに情報を表示する関数
+void fetchAndShowTask() {
+
+  static unsigned long lastTaskMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastTaskMillis >= taskInterval * 1000) {
+    lastTaskMillis = currentMillis;
+    Serial.println(createJson());
+  }
+
+}
+
+// 0.5秒ごとにホスト名を更新する関数
+void updateMdnsTask() {
+
+  static unsigned long lastMdnsMillis = 0;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastMdnsMillis >= 500) {
+    lastMdnsMillis = currentMillis;
+    MDNS.update();
+  }
 
 }
