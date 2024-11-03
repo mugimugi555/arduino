@@ -48,6 +48,9 @@ AsyncWebServer server(80);
 // WebSocketサーバー設定
 AsyncWebSocket ws("/ws");
 
+// TCPソケット設定
+WiFiServer tcpServer(12345);  // TCPサーバーをポート12345で初期化
+WiFiClient tcpClient;
 
 //----------------------------------------------------------------------------
 // HTMLコンテンツ（Vanilla(素の) JavaScriptを使用）
@@ -212,6 +215,9 @@ void loop() {
 
   ws.cleanupClients();  // クライアントの管理
 
+  //
+  handleTCPClient();
+
 }
 
 //----------------------------------------------------------------------------
@@ -333,6 +339,9 @@ void setupWebServer() {
   // Webサーバーを開始
   server.begin();
 
+  // TCPソケットサーバー開始
+  tcpServer.begin();
+
 }
 
 //
@@ -341,11 +350,14 @@ void sendMessage() {
   //
   String jsonResponse = createJson();
 
-  // 全クライアントにメッセージを送信
+  // WebSocketで配信
   ws.textAll(jsonResponse);
 
+  // Socketで配信
+  tcpClient.println(jsonResponse);
+
   //
-  Serial.println(createJson());
+  Serial.println(jsonResponse);
 
 }
 
@@ -376,6 +388,22 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
 
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
     // クライアントからのメッセージ処理（必要に応じて）
+  }
+
+}
+
+// TCPクライアントの接続確認とデータ送信
+void handleTCPClient() {
+
+  // 新しいTCPクライアントの接続を確認
+  if (tcpServer.hasClient()) {
+    if (!tcpClient || !tcpClient.connected()) {
+      tcpClient = tcpServer.available();
+      Serial.println("New TCP client connected");
+    } else {
+      tcpServer.available().stop();
+      Serial.println("Rejected new client");
+    }
   }
 
 }
