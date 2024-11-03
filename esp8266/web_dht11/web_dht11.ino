@@ -209,7 +209,7 @@ String createJson() {
   float humidity        = dht.readHumidity();                   // 湿度
   float discomfortIndex = temperature + 0.36 * humidity + 41.2; // 不快指数の計算
 
-  // JSON形式に整形
+  // JSONオブジェクトの作成
   doc["temperature"]     = temperature;               // 温度 (摂氏)
   doc["humidity"]        = humidity;                  // 湿度 (%)
   doc["discomfortIndex"] = discomfortIndex;           // 不快指数 (相対的な快適さを示す指標)

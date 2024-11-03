@@ -335,7 +335,7 @@ String convertCSVLineToJSON(String line) {
   String humidity        = line.substring(secondCommaIndex + 1, thirdCommaIndex);
   String discomfortIndex = line.substring(thirdCommaIndex  + 1);
 
-  // JSON形式に整形
+  // JSONオブジェクトの作成
   StaticJsonDocument<256> doc;
   doc["datetime"]         = datetime; // DATETIME形式
   doc["temperature"]      = temperature.toFloat();
@@ -402,7 +402,7 @@ String readAndSaveSensorData() {
     Serial.println("ファイルを開けませんでした");
   }
 
-  // JSON形式に整形
+  // JSONオブジェクトの作成
   StaticJsonDocument<256> doc;
   doc["datetime"]         = datetime;                  // DATETIME形式
   doc["temperature"]      = temperature;               // 温度 (摂氏)
