@@ -35,7 +35,7 @@ echo "now compiling..."
 arduino-cli compile --fqbn "$BOARD_NAME" "$TEMP_SKETCH"
 if [ $? -eq 0 ]; then
     echo "Compilation successful, uploading..."
-    arduino-cli upload -p /dev/ttyUSB0 --fqbn "$BOARD_NAME" "$TEMP_SKETCH"
+    arduino-cli upload -v -p /dev/ttyUSB0 --fqbn "$BOARD_NAME" "$TEMP_SKETCH"
 
     if [ $? -eq 0 ]; then
         echo "Upload successful!"
